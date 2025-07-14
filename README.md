@@ -11,10 +11,10 @@ If you're already familiar with Kubernetes and want to deploy quickly:
 
 ```bash
 # Using Kustomize (Recommended)
-kubectl apply -k k8s/overlays/example
+kubectl apply -k overlays/example
 
 # OR using direct deployment
-kubectl apply -f k8s/synq-scout-example.yaml
+kubectl apply -f synq-scout-example.yaml
 ```
 
 ## Prerequisites
