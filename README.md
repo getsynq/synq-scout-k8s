@@ -25,6 +25,7 @@ Before you begin, ensure you have:
 - ✅ `kubectl` CLI tool installed
 - ✅ `kustomize` installed (if using Kustomize approach)
 - ✅ Access to the container registry where the images are stored
+- ✅ OpenAI-compatible API serving `claude-3-5-sonnet` model (we recommend [LiteLLM](https://docs.litellm.ai/) as a proxy)
 
 ## Project Structure
 
@@ -38,6 +39,50 @@ synq-scout-k8s/
 └── overlays/             # Environment-specific overlays
     └── example/          # Example environment configuration
 ```
+
+## API Requirements
+
+SYNQ Scout requires access to an OpenAI-compatible API serving the `claude-3-5-sonnet` model. We recommend using **LiteLLM** as a proxy to handle this requirement.
+
+### Setting up LiteLLM
+
+LiteLLM provides a unified interface for various AI models and can serve Claude models through an OpenAI-compatible API:
+
+1. **Install LiteLLM**:
+   ```bash
+   pip install litellm
+   ```
+
+2. **Configure for Claude**:
+   ```bash
+   # Set your Anthropic API key
+   export ANTHROPIC_API_KEY="your-api-key-here"
+   
+   # Start LiteLLM proxy
+   litellm --model claude-3-5-sonnet --port 8000
+   ```
+
+3. **Update SYNQ Scout Configuration**:
+   Point your SYNQ Scout deployment to use the LiteLLM proxy URL (e.g., `http://litellm-service:8000`) in your environment configuration.
+
+### Model Configuration
+
+SYNQ Scout supports configurable AI models for different tasks:
+
+- **Thinking Model**: Used for complex reasoning and analysis
+- **Summary Model**: Used for generating summaries and reports
+
+**Recommended Configuration**:
+- `claude-3-5-sonnet` for both thinking and summary (best quality)
+- `claude-3-5-haiku` can be used for summary generation (faster, cost-effective)
+
+⚠️ **Note**: 
+- Google AI Gemini models are work-in-progress and may work in some setups but are not recommended at this time
+- OpenAI models are not supported
+
+Models are configured in `base/agent.yaml` and can be customized per environment using Kustomize overlays. To override model settings for a specific environment, create a patch in your overlay directory (e.g., `overlays/example/agent.yaml`).
+
+For more information, visit the [LiteLLM documentation](https://docs.litellm.ai/).
 
 ## Detailed Deployment Instructions
 
