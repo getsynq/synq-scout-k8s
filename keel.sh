@@ -1,0 +1,1 @@
+cat keel-values.yaml | go run github.com/bluebrown/go-template-cli/cmd/tpl@latest -f keel-template.yaml -d yaml > keel.yaml
