@@ -46,24 +46,44 @@ SYNQ Scout requires access to an OpenAI-compatible API serving the `claude-3-5-s
 
 ### Setting up LiteLLM
 
-LiteLLM provides a unified interface for various AI models and can serve Claude models through an OpenAI-compatible API:
+LiteLLM provides a unified interface for various AI models and can serve Claude models through an OpenAI-compatible API. For Kubernetes deployments, LiteLLM should be deployed as a separate service.
 
-1. **Install LiteLLM**:
-   ```bash
-   pip install litellm
-   ```
+#### Kubernetes Deployment (Recommended)
 
-2. **Configure for Claude**:
-   ```bash
-   # Set your Anthropic API key
-   export ANTHROPIC_API_KEY="your-api-key-here"
-   
-   # Start LiteLLM proxy
-   litellm --model claude-3-5-sonnet --port 8000
-   ```
+Follow the [LiteLLM Kubernetes deployment guide](https://docs.litellm.ai/docs/proxy/deploy#kubernetes) to deploy LiteLLM in your Kubernetes cluster. The basic deployment includes:
 
-3. **Update SYNQ Scout Configuration**:
-   Point your SYNQ Scout deployment to use the LiteLLM proxy URL (e.g., `http://litellm-service:8000`) in your environment configuration.
+1. **ConfigMap** for LiteLLM configuration
+2. **Secret** for API keys
+3. **Deployment** with the LiteLLM container
+4. **Service** to expose the proxy
+
+Example configuration for Claude models:
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: litellm-config-file
+data:
+  config.yaml: |
+    model_list:
+       - model_name: claude-3-5-sonnet
+         litellm_params:
+           model: claude-3-5-sonnet
+           api_key: os.environ/ANTHROPIC_API_KEY
+```
+
+Claude models can be accessed through multiple providers via LiteLLM:
+- **Direct Anthropic API**: Use `claude-3-5-sonnet` with `ANTHROPIC_API_KEY`
+- **Google Vertex AI**: Use `vertex_ai/claude-3-5-sonnet` with Google Cloud credentials
+- **Amazon Bedrock**: Use `bedrock/claude-3-5-sonnet` with AWS credentials
+
+For provider-specific configuration, refer to the [LiteLLM provider documentation](https://docs.litellm.ai/docs/providers).
+
+**Important**: Use versioned image tags instead of `main-stable` for production deployments.
+
+#### Configuration
+
+After deploying LiteLLM, update your SYNQ Scout configuration to point to the LiteLLM service URL (e.g., `http://litellm-service:8000`) in your environment configuration files.
 
 ### Model Configuration
 
