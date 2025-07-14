@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namePrefix: example-
+configMapGenerator:
+  - files:
+      - agent.yaml
+    name: synq-scout-agent-config
+    behavior: merge
+secretGenerator:
+  - envs:
+      - agent.env
+    name: synq-scout-agent-env
+    behavior: merge
+resources:
+  - ../../base
+  # Enable automatic updates of the base image using https://keel.sh/
+  #- keel-update.yaml
+namespace: synq
+
+generatorOptions:
+  disableNameSuffixHash: true

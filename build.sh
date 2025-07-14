@@ -1,0 +1,1 @@
+kustomize build overlays/example > synq-scout-example.yaml

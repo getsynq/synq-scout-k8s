@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: synq-scout-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      deployment: synq-scout
+  template:
+    metadata:
+      labels:
+        deployment: synq-scout
+    spec:
+      containers:
+        - name: synq-scout-container
+          image: europe-docker.pkg.dev/synq-cicd-public/synq-public/synq-scout:v0.1.0
+          imagePullPolicy: Always
+          envFrom:
+            - secretRef:
+                name: synq-scout-agent-env
+          volumeMounts:
+            - name: synq-scout-agent-config-volume
+              mountPath: /opt/synq-scout/
+      volumes:
+        - name: synq-scout-agent-config-volume
+          configMap:
+            name: synq-scout-agent-config

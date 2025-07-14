@@ -1,0 +1,16 @@
+# DO NOT USE IN PRODUCTION
+# This is a development tool to help with local development and testing of the configuration.
+# It is not recommended to use this in production.
+# For production deployments, please use the Kubernetes deployment guide.
+
+services:
+  synq-scout:
+    image: europe-docker.pkg.dev/synq-cicd-public/synq-public/synq-scout:v0.1.0
+    pull_policy: always
+    platform: linux/amd64
+    environment:
+      POSTGRES_PASSWORD: pass
+      SYNQ_CLIENT_ID: example-client-id-from-synq
+      SYNQ_CLIENT_SECRET: example-client-secret-from-synq
+    volumes:
+      - ./overlays/example/agent.yaml:/opt/synq-scout/agent.yaml

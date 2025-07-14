@@ -1,0 +1,11 @@
+synq:
+  client_id: ${SYNQ_CLIENT_ID}
+  client_secret: ${SYNQ_CLIENT_SECRET}
+connections: {}
+
+llm:
+  openai:
+    base_url: "http://litellm:4000/v1/chat/completions"
+    api_key: ${OPENAI_API_KEY}
+    thinking_model: "claude-3-5-sonnet"
+    summary_model: "claude-3-5-sonnet"
