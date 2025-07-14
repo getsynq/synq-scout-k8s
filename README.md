@@ -172,6 +172,31 @@ Resource limits and requests can be adjusted in:
 - Base deployment: `base/deployment.yaml`
 - Environment-specific: In respective overlay's patch files
 
+### Container Image Auto-Updates
+
+We recommend using an auto-update tool to keep your SYNQ Scout deployment current with the latest container versions. The agent deployment includes annotations to work with [Keel.sh](https://keel.sh/docs/) by default:
+
+```yaml
+annotations:
+  keel.sh/policy: minor
+  keel.sh/trigger: poll
+  keel.sh/pollSchedule: "@every 5m"
+```
+
+#### Keel.sh (Recommended)
+- **Simple setup**: Deploy as a single Kubernetes deployment
+- **Annotation-based**: Configure updates directly in deployment manifests
+- **Flexible policies**: Support for major, minor, patch, and force update policies
+- **Multiple triggers**: Poll, webhook, and approval-based updates
+
+#### Alternative Auto-Update Tools
+
+**GitOps-Based Solutions:**
+- **FluxCD with Image Automation**: Automatically updates Git repositories when new images are available, following GitOps principles
+- **ArgoCD Image Updater**: Updates ArgoCD applications with new container images while maintaining Git-based configuration
+
+Choose based on your workflow: GitOps-based solutions (FluxCD/ArgoCD) for production environments with full Git-based configuration management.
+
 ## Troubleshooting Guide
 
 If you encounter issues, follow these steps:
