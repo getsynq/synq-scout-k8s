@@ -13,8 +13,6 @@ secretGenerator:
     behavior: merge
 resources:
   - ../../base
-  # Enable automatic updates of the base image using https://keel.sh/
-  #- keel-update.yaml
 namespace: synq
 
 generatorOptions:

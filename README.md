@@ -154,7 +154,12 @@ kubectl get pods
 
 # View logs
 kubectl logs -l app=synq-scout
+
+# Test configuration and LLM connectivity
+synq-scout health
 ```
+
+The `synq-scout health` command validates that the configuration is correct and LLM connections are working as expected. This command will verify connectivity to the Scout AI control plane, test available data warehouse connections, and ensure both thinking and summary models are functioning properly.
 
 ## Configuration Guide
 
