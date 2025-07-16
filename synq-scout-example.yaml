@@ -1,6 +1,9 @@
 apiVersion: v1
 data:
   agent.yaml: |
+    llm:
+      openai:
+        base_url: "http://litellm-service.litellm.svc.cluster.local:4000/v1/chat/completions"
     connections:
       "postgres":
         name: "PostgreSQL"
@@ -18,6 +21,7 @@ metadata:
 ---
 apiVersion: v1
 data:
+  OPENAI_API_KEY: ZXhhbXBsZS1vcGVuYWktYXBpLWtleQ==
   POSTGRES_PASSWORD: cGFzcw==
   SYNQ_CLIENT_ID: ZXhhbXBsZS1jbGllbnQtaWQtZnJvbS1zeW5x
   SYNQ_CLIENT_SECRET: ZXhhbXBsZS1jbGllbnQtc2VjcmV0LWZyb20tc3lucQ==
@@ -30,6 +34,10 @@ type: Opaque
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  annotations:
+    keel.sh/policy: minor
+    keel.sh/pollSchedule: '@every 5m'
+    keel.sh/trigger: poll
   name: example-synq-scout-deployment
   namespace: synq
 spec:
