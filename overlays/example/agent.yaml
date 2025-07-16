@@ -1,6 +1,8 @@
 llm:
   openai:
     base_url: "http://litellm-service.litellm.svc.cluster.local:4000/v1/chat/completions"
+    thinking_model: "claude-3-5-sonnet"
+    summary_model: "claude-3-5-sonnet"
 connections:
   "postgres":
     name: "PostgreSQL"
