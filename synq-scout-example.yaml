@@ -4,6 +4,8 @@ data:
     llm:
       openai:
         base_url: "http://litellm-service.litellm.svc.cluster.local:4000/v1/chat/completions"
+        thinking_model: "claude-3-5-sonnet"
+        summary_model: "claude-3-5-sonnet"
     connections:
       "postgres":
         name: "PostgreSQL"
@@ -36,7 +38,7 @@ kind: Deployment
 metadata:
   annotations:
     keel.sh/policy: minor
-    keel.sh/pollSchedule: '@every 5m'
+    keel.sh/pollSchedule: '@every 1m'
     keel.sh/trigger: poll
   name: example-synq-scout-deployment
   namespace: synq
@@ -54,7 +56,7 @@ spec:
       - envFrom:
         - secretRef:
             name: example-synq-scout-agent-env
-        image: europe-docker.pkg.dev/synq-cicd-public/synq-public/synq-scout:v0.1.0
+        image: europe-docker.pkg.dev/synq-cicd-public/synq-public/synq-scout:v0.1.2
         imagePullPolicy: Always
         name: synq-scout-container
         volumeMounts:

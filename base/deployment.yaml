@@ -5,7 +5,7 @@ metadata:
   annotations:
     keel.sh/policy: minor
     keel.sh/trigger: poll
-    keel.sh/pollSchedule: "@every 5m"
+    keel.sh/pollSchedule: "@every 1m"
 spec:
   replicas: 1
   selector:
@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: synq-scout-container
-          image: europe-docker.pkg.dev/synq-cicd-public/synq-public/synq-scout:v0.1.0
+          image: europe-docker.pkg.dev/synq-cicd-public/synq-public/synq-scout:v0.1.2
           imagePullPolicy: Always
           envFrom:
             - secretRef:
