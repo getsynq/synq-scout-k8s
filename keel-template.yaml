@@ -213,6 +213,8 @@ spec:
             # Enable insecure registries
             - name: INSECURE_REGISTRY
               value: "true"
+            - name: DEBUG
+              value: "true"
           ports:
             - containerPort: 9300
           livenessProbe:
