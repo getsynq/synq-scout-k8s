@@ -56,7 +56,7 @@ spec:
       - envFrom:
         - secretRef:
             name: example-synq-scout-agent-env
-        image: europe-docker.pkg.dev/synq-cicd-public/synq-public/synq-scout:v0.1.2
+        image: europe-docker.pkg.dev/synq-cicd-public/synq-public/synq-scout:v0.1.4
         imagePullPolicy: Always
         name: synq-scout-container
         volumeMounts:
