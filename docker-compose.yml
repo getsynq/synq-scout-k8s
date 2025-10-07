@@ -5,7 +5,7 @@
 
 services:
   synq-scout:
-    image: europe-docker.pkg.dev/synq-cicd-public/synq-public/synq-scout:v0.1.0
+    image: europe-docker.pkg.dev/synq-cicd-public/synq-public/synq-scout:latest
     pull_policy: always
     platform: linux/amd64
     environment:

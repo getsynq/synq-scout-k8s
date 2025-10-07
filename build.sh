@@ -1,1 +1,1 @@
-kustomize build overlays/example > synq-scout-example.yaml
+kubectl kustomize overlays/example > synq-scout-example.yaml
