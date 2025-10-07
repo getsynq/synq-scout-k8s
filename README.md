@@ -22,8 +22,7 @@ kubectl apply -f synq-scout-example.yaml
 Before you begin, ensure you have:
 
 - ✅ Kubernetes cluster access configured
-- ✅ `kubectl` CLI tool installed
-- ✅ `kustomize` installed (if using Kustomize approach)
+- ✅ `kubectl` CLI tool installed (v1.14+ with built-in kustomize support)
 - ✅ Access to the container registry where the images are stored
 - ✅ OpenAI-compatible API serving `claude-3-5-sonnet` model (we recommend [LiteLLM](https://docs.litellm.ai/) as a proxy)
 
@@ -93,7 +92,7 @@ SYNQ Scout supports configurable AI models for different tasks:
 - **Summary Model**: Used for generating summaries and reports
 
 **Recommended Configuration**:
-- `claude-3-5-sonnet` for both thinking and summary (best quality)
+- `claude-4-5-sonnet` for both thinking and summary (best quality)
 - `claude-3-5-haiku` can be used for summary generation (faster, cost-effective)
 
 ⚠️ **Note**: 
@@ -112,23 +111,19 @@ Kustomize provides better environment management and configuration customization
 
 1. **Review Base Configuration**
 
-   - Navigate to `k8s/base/`
+   - Navigate to `base/`
    - Review and modify configurations as needed
    - Pay special attention to resource limits and environment variables
 
 2. **Environment Setup**
 
-   - Choose an existing environment overlay from `k8s/overlays/`
+   - Choose an existing environment overlay from `overlays/`
    - Or create a new one by copying the `example` directory
 
 3. **Deploy**
 
    ```bash
-   # Using kubectl with built-in kustomize
    kubectl apply -k overlays/example
-
-   # OR using standalone kustomize (for older kubectl versions)
-   kustomize build overlays/example | kubectl apply -f -
    ```
 
 ### 2. Direct Deployment Using kubectl
@@ -230,7 +225,7 @@ To remove the deployment:
 
 ```bash
 # Using Kustomize
-kustomize build overlays/example | kubectl delete -f -
+kubectl delete -k overlays/example
 
 # OR direct deployment
 kubectl delete -f synq-scout-example.yaml
