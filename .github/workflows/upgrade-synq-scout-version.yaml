@@ -41,8 +41,8 @@ jobs:
         done
 
         # Also extract values for PR body
-        NEW_VERSION=$(echo "$OUTPUT" | grep '^new_version=' | cut -d'=' -f2)
-        CURRENT_VERSION=$(echo "$OUTPUT" | grep '^current_version=' | cut -d'=' -f2)
+        NEW_VERSION=$(echo "$OUTPUT" | grep '^new_version=' | cut -d'=' -f2 || true)
+        CURRENT_VERSION=$(echo "$OUTPUT" | grep '^current_version=' | cut -d'=' -f2 || true)
 
         if [ -n "$NEW_VERSION" ] && [ -n "$CURRENT_VERSION" ]; then
           # Create PR body
