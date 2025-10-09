@@ -1,0 +1,78 @@
+name: Upgrade synq-scout image version
+"on":
+  push:
+    branches:
+    - main
+    paths:
+    - .github/workflows/upgrade-synq-scout-version.yaml
+  schedule:
+    - cron: '0 9-23/1 * * MON-FRI'
+  workflow_dispatch:
+concurrency:
+  cancel-in-progress: true
+  group: synq-scout-upgrade-version
+defaults:
+  run:
+    shell: bash
+jobs:
+  update:
+    if: '!contains(github.event.commits[0].message, ''ci skip'')'
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Install kubectl
+      run: |
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        chmod +x kubectl
+        sudo mv kubectl /usr/local/bin/
+    - name: Make script executable
+      run: chmod +x scripts/check-and-update-version.sh
+    - name: Check and update version
+      id: check_version
+      run: |
+        # Run script and capture output
+        OUTPUT=$(./scripts/check-and-update-version.sh)
+
+        # Parse key=value pairs and write to GITHUB_OUTPUT
+        echo "$OUTPUT" | while IFS='=' read -r key value; do
+          echo "$key=$value" >> $GITHUB_OUTPUT
+        done
+
+        # Also extract values for PR body
+        NEW_VERSION=$(echo "$OUTPUT" | grep '^new_version=' | cut -d'=' -f2)
+        CURRENT_VERSION=$(echo "$OUTPUT" | grep '^current_version=' | cut -d'=' -f2)
+
+        if [ -n "$NEW_VERSION" ] && [ -n "$CURRENT_VERSION" ]; then
+          # Create PR body
+          cat >> $GITHUB_OUTPUT <<EOF
+        pr_body<<EOFBODY
+        :rocket: Updated synq-scout image to ${NEW_VERSION}
+
+        Changes:
+        - Image version bumped from ${CURRENT_VERSION} to ${NEW_VERSION}
+        - Rebuilt kustomize manifest (synq-scout-example.yaml)
+        EOFBODY
+        EOF
+        fi
+    - name: Rebuild kustomize manifest
+      if: steps.check_version.outputs.should_update == 'true'
+      run: |
+        echo "==> Rebuilding kustomize manifest"
+        ./build.sh
+        echo "==> Generated synq-scout-example.yaml"
+    - name: Create version PR
+      if: steps.check_version.outputs.should_update == 'true'
+      uses: peter-evans/create-pull-request@v6
+      with:
+        add-paths: |
+          base/deployment.yaml
+          synq-scout-example.yaml
+        author: Synqlair <ci@synq.io>
+        body: ${{ steps.check_version.outputs.pr_body }}
+        branch: auto-versions/synq-scout-image
+        commit-message: Upgrade synq-scout image to ${{ steps.check_version.outputs.new_version }}
+        delete-branch: true
+        labels: deployment,automation
+        title: 'Upgrade synq-scout image to ${{ steps.check_version.outputs.new_version }}'

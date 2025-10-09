@@ -1,0 +1,59 @@
+name: Validate PR
+"on":
+  pull_request:
+    branches:
+    - main
+    paths:
+    - base/**
+    - overlays/**
+    - scripts/**
+    - .github/workflows/validate-pr.yaml
+concurrency:
+  cancel-in-progress: true
+  group: validate-pr-${{ github.event.pull_request.number }}
+defaults:
+  run:
+    shell: bash
+jobs:
+  validate-image-version:
+    name: Validate image version
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install dependencies
+      run: |
+        # Ensure jq and curl are available
+        command -v jq >/dev/null || sudo apt-get update && sudo apt-get install -y jq
+        command -v curl >/dev/null || sudo apt-get update && sudo apt-get install -y curl
+    - name: Make script executable
+      run: chmod +x scripts/validate-image-version.sh
+    - name: Validate image version
+      run: ./scripts/validate-image-version.sh
+
+  validate-kustomize-build:
+    name: Validate Kustomize build
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        overlay:
+        - example
+        - synq-staging
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install kustomize
+      run: |
+        curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+        sudo mv kustomize /usr/local/bin/
+    - name: Validate kustomize build for ${{ matrix.overlay }}
+      run: |
+        echo "==> Building kustomize overlay: ${{ matrix.overlay }}"
+        kustomize build overlays/${{ matrix.overlay }} > /tmp/output.yaml
+
+        echo "==> Validating output is not empty"
+        if [ ! -s /tmp/output.yaml ]; then
+          echo "ERROR: Kustomize build produced empty output"
+          exit 1
+        fi
+
+        echo "==> Build successful ✓"
+        echo "Generated $(wc -l < /tmp/output.yaml) lines of Kubernetes manifests"
