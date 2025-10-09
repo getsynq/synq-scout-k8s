@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This repository contains Kubernetes deployment configurations for SYNQ Scout AI, a service that requires access to Claude models through an OpenAI-compatible API (typically via LiteLLM proxy).
+This repository contains Kubernetes deployment configurations for SYNQ Scout AI, a service that requires access to Claude models through an OpenAI-compatible API (typically via LiteLLM proxy). SYNQ Scout has been tested with LiteLLM v1.77.5-stable.
 
 ## Build and Deployment Commands
 
@@ -103,11 +103,15 @@ Deploy Keel using `kubectl apply -f keel.yaml`.
 ### LLM Model Configuration
 
 Models are configured in `base/agent.yaml`:
-- `thinking_model`: Used for complex reasoning (recommended: `claude-4-5-sonnet` or `claude-4-sonnet`)
-- `summary_model`: Used for summaries (recommended: `claude-4-5-sonnet`, `claude-4-sonnet`, or `claude-3-5-haiku` for cost optimization)
+- `thinking_model`: Used for complex reasoning
+  - **Recommended**: `claude-4-5-sonnet` (latest, best quality, still under review but no known issues) or `claude-4-sonnet` (stable, production-ready)
+- `summary_model`: Used for summaries
+  - **Recommended**: `claude-4-5-sonnet` or `claude-4-sonnet` for best quality, or `claude-3-5-haiku` for cost optimization
 - Both models must be available through the LiteLLM proxy at the configured `base_url`
 
 Models can be overridden per environment in overlay `agent.yaml` files.
+
+**Tested LiteLLM Version**: v1.77.5-stable
 
 ## Important Configuration Notes
 
@@ -121,4 +125,4 @@ Models can be overridden per environment in overlay `agent.yaml` files.
 
 Images are hosted at: `europe-docker.pkg.dev/synq-cicd-public/synq-public/synq-scout`
 
-Current version in deployment: `v0.1.4`
+Current version in deployment: `v0.1.7`
