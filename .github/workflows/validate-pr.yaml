@@ -37,7 +37,6 @@ jobs:
       matrix:
         overlay:
         - example
-        - synq-staging
     steps:
     - uses: actions/checkout@v4
     - name: Install kustomize
