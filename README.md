@@ -24,7 +24,7 @@ Before you begin, ensure you have:
 - ✅ Kubernetes cluster access configured
 - ✅ `kubectl` CLI tool installed (v1.14+ with built-in kustomize support)
 - ✅ Access to the container registry where the images are stored
-- ✅ OpenAI-compatible API serving `claude-3-5-sonnet` model (we recommend [LiteLLM](https://docs.litellm.ai/) as a proxy)
+- ✅ OpenAI-compatible API serving Claude 4 or 4.5 models (we recommend [LiteLLM](https://docs.litellm.ai/) v1.77.5-stable or later as a proxy)
 
 ## Project Structure
 
@@ -41,7 +41,7 @@ synq-scout-k8s/
 
 ## API Requirements
 
-SYNQ Scout requires access to an OpenAI-compatible API serving the `claude-3-5-sonnet` model. We recommend using **LiteLLM** as a proxy to handle this requirement.
+SYNQ Scout requires access to an OpenAI-compatible API serving Claude 4 or Claude 4.5 models. We recommend using **LiteLLM v1.77.5-stable or later** as a proxy to handle this requirement.
 
 ### Setting up LiteLLM
 
@@ -65,20 +65,22 @@ metadata:
 data:
   config.yaml: |
     model_list:
-       - model_name: claude-3-5-sonnet
+       - model_name: claude-4-5-sonnet
          litellm_params:
-           model: claude-3-5-sonnet
+           model: claude-4-5-sonnet
            api_key: os.environ/ANTHROPIC_API_KEY
 ```
 
 Claude models can be accessed through multiple providers via LiteLLM:
-- **Direct Anthropic API**: Use `claude-3-5-sonnet` with `ANTHROPIC_API_KEY`
-- **Google Vertex AI**: Use `vertex_ai/claude-3-5-sonnet` with Google Cloud credentials
-- **Amazon Bedrock**: Use `bedrock/claude-3-5-sonnet` with AWS credentials
+- **Direct Anthropic API**: Use `claude-4-5-sonnet` or `claude-4-sonnet` with `ANTHROPIC_API_KEY`
+- **Google Vertex AI**: Use `vertex_ai/claude-4-5-sonnet` or `vertex_ai/claude-4-sonnet` with Google Cloud credentials
+- **Amazon Bedrock**: Use `bedrock/claude-4-5-sonnet` or `bedrock/claude-4-sonnet` with AWS credentials
 
 For provider-specific configuration, refer to the [LiteLLM provider documentation](https://docs.litellm.ai/docs/providers).
 
-**Important**: Use versioned image tags instead of `main-stable` for production deployments.
+**Important**:
+- SYNQ Scout has been tested with LiteLLM v1.77.5-stable
+- Use versioned image tags (like v1.77.5-stable) instead of `main-stable` for production deployments
 
 #### Configuration
 
@@ -92,7 +94,8 @@ SYNQ Scout supports configurable AI models for different tasks:
 - **Summary Model**: Used for generating summaries and reports
 
 **Recommended Configuration**:
-- `claude-4-5-sonnet` for both thinking and summary (best quality)
+- **Claude 4.5 Sonnet** (`claude-4-5-sonnet`): Latest model, best quality for both thinking and summary tasks (still under review but no known issues)
+- **Claude 4 Sonnet** (`claude-4-sonnet`): Stable production-ready model, excellent quality for both thinking and summary tasks
 - `claude-3-5-haiku` can be used for summary generation (faster, cost-effective)
 
 ⚠️ **Note**: 
