@@ -76,3 +76,46 @@ jobs:
         delete-branch: true
         labels: deployment,automation
         title: 'Upgrade synq-scout image to ${{ steps.check_version.outputs.new_version }}'
+    - name: Get PR head SHA
+      if: steps.check_version.outputs.should_update == 'true'
+      id: pr_sha
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        PR_SHA=$(gh pr list --head auto-versions/synq-scout-image --json headRefOid --jq '.[0].headRefOid')
+        echo "sha=$PR_SHA" >> $GITHUB_OUTPUT
+        echo "PR SHA: $PR_SHA"
+    - name: Validate image version
+      if: steps.check_version.outputs.should_update == 'true'
+      id: validate_image
+      run: |
+        chmod +x scripts/validate-image-version.sh
+        ./scripts/validate-image-version.sh
+    - name: Set image validation status
+      if: steps.check_version.outputs.should_update == 'true'
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        gh api repos/${{ github.repository }}/statuses/${{ steps.pr_sha.outputs.sha }} \
+          --method POST \
+          --field state="success" \
+          --field context="Validate image version" \
+          --field description="Image version validated successfully" \
+          --field target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+    - name: Validate kustomize build
+      if: steps.check_version.outputs.should_update == 'true'
+      id: validate_kustomize
+      run: |
+        chmod +x scripts/validate-kustomize-build.sh
+        ./scripts/validate-kustomize-build.sh example
+    - name: Set kustomize validation status
+      if: steps.check_version.outputs.should_update == 'true'
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        gh api repos/${{ github.repository }}/statuses/${{ steps.pr_sha.outputs.sha }} \
+          --method POST \
+          --field state="success" \
+          --field context="Validate Kustomize build (example)" \
+          --field description="Kustomize build validated successfully" \
+          --field target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
