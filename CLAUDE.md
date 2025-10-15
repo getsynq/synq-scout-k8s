@@ -86,6 +86,9 @@ The project uses **Kustomize** for environment-based configuration management:
    - `SYNQ_CLIENT_ID`: Client ID from SYNQ
    - `SYNQ_CLIENT_SECRET`: Client secret from SYNQ
    - `OPENAI_API_KEY`: API key for LiteLLM proxy
+   - `VALIDATE_CONNECTIONS` (optional): Enable/disable connection validation on startup (default: true)
+   - `REQUIRE_VALID_CONNECTIONS` (optional): Make validation failures fatal (default: false)
+   - `REQUIRE_CONTROL_PLANE` (optional): Make control plane config retrieval failures fatal (default: false, retries 3 times with exponential backoff)
 
 The deployment mounts the ConfigMap at `/opt/synq-scout/` and injects Secret values as environment variables.
 
