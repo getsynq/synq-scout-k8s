@@ -85,6 +85,7 @@ connections:
 
   # Example 5: Snowflake with high parallelism for large warehouse
   # Note: Private key authentication is preferred (password auth is deprecated)
+  # Option A: Inline private key (PEM content as environment variable)
   "db42cf55-e818-49dc-8363-887b3ee11954":
     name: "Snowflake Production"
     parallelism: 16  # Higher for large warehouse
@@ -93,9 +94,25 @@ connections:
       warehouse: "COMPUTE_WH"
       role: "ACCOUNTADMIN"
       username: "myuser"
-      private_key: ${SNOWFLAKE_PRIVATE_KEY}  # Preferred over password auth
+      private_key: ${SNOWFLAKE_PRIVATE_KEY}  # PEM content as env var
+      # private_key_passphrase: ${SNOWFLAKE_PRIVATE_KEY_PASSPHRASE}  # Optional: for encrypted keys
       databases: ["MYDB"]
       use_get_ddl: true
+
+  # Example 5B: Snowflake with private key file (alternative to inline key)
+  # Recommended when using Kubernetes Secrets mounted as files
+  # "db42cf55-e818-49dc-8363-887b3ee11954":
+  #   name: "Snowflake Production"
+  #   parallelism: 16
+  #   snowflake:
+  #     account: "myorg-myaccount"
+  #     warehouse: "COMPUTE_WH"
+  #     role: "ACCOUNTADMIN"
+  #     username: "myuser"
+  #     private_key_file: "/opt/secrets/snowflake-private-key.pem"  # Path to PEM file
+  #     private_key_passphrase: ${SNOWFLAKE_PRIVATE_KEY_PASSPHRASE}  # Optional: for encrypted keys
+  #     databases: ["MYDB"]
+  #     use_get_ddl: true
 
   # Example 6: Redshift (AWS data warehouse)
   "e8c9f123-4d56-7890-abcd-ef1234567890":

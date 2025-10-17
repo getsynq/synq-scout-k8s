@@ -213,6 +213,22 @@ The `parallelism` setting controls how many queries can run concurrently per con
 - Databricks
 - Trino
 
+**Database-Specific Configuration Notes**:
+
+**Snowflake Authentication**: Private key authentication is preferred (password auth is deprecated). Two methods are supported:
+- **Inline private key**: Store PEM content in environment variable
+  - Set `private_key: ${SNOWFLAKE_PRIVATE_KEY}` in `agent.yaml`
+  - Define `SNOWFLAKE_PRIVATE_KEY` in `agent.env` with the PEM content
+- **Private key file**: Store path to mounted secret file (recommended for Kubernetes)
+  - Set `private_key_file: "/opt/secrets/snowflake-private-key.pem"` in `agent.yaml`
+  - Mount the key file via Kubernetes Secret
+- Both methods support encrypted keys via optional `private_key_passphrase` parameter
+
+**MySQL Configuration**: Enhanced with additional connection options:
+- `database`: Database name to connect to
+- `allow_insecure`: Boolean flag to allow non-TLS connections (default: false)
+- `params`: Map of custom connection parameters (e.g., `charset`, `parseTime`)
+
 For detailed configuration schema and additional options, see the [official documentation](https://docs.synq.io/dw-integrations/agent#config-file-schema).
 
 ### Environment Variables
@@ -222,55 +238,71 @@ Environment variables are managed in two places:
 - Base configuration: `base/agent.env`
 - Environment-specific variables: Located in respective overlay directories
 
-#### `LOG_FORMAT` (optional)
-Controls the output format for structured logging.
-**Values**: `json` (default), `text`
-**Default**: `json`
+#### Required Environment Variables
 
-When set to `text`, logs are output in human-readable text format suitable for development and debugging. When unset or set to `json`, logs are output in JSON format suitable for production and log aggregation systems.
+- **SYNQ_CLIENT_ID**: OAuth client ID for Scout AI control plane authentication
+- **SYNQ_CLIENT_SECRET**: OAuth client secret for Scout AI control plane authentication
+- **OPENAI_API_KEY**: API key for the LiteLLM proxy or OpenAI-compatible endpoint
 
-To configure in your deployment, add the environment variable to `base/agent.env` or your overlay's environment configuration:
+#### Optional Environment Variables
+
+- **VALIDATE_CONNECTIONS** (default: `true`)
+  - Controls database connection validation on agent startup
+  - Set to `false` to disable validation
+  - When enabled, the agent tests connectivity and configuration for all database connections before starting
+  - Helps prevent wasting LLM tokens on misconfigured connections
+
+- **REQUIRE_VALID_CONNECTIONS** (default: `false`)
+  - Makes database connection validation failures fatal
+  - When set to `true`, the agent will refuse to start if any connection validation fails
+  - Recommended for production environments where all connections must be functional
+  - Only has effect when `VALIDATE_CONNECTIONS=true`
+
+- **REQUIRE_CONTROL_PLANE** (default: `false`)
+  - Makes Scout AI control plane configuration retrieval failures fatal
+  - When set to `true`, the agent will refuse to start if it cannot retrieve configuration from the control plane
+  - The agent retries 3 times with exponential backoff (2s, 4s, 8s) before failing
+  - By default, the agent logs a warning but continues with local configuration only
+
+- **LOG_FORMAT** (default: `json`)
+  - Controls the output format for structured logging
+  - **Values**: `json` (default), `text`
+  - When set to `text`, logs are output in human-readable text format suitable for development and debugging
+  - When unset or set to `json`, logs are output in JSON format suitable for production and log aggregation systems
+
+- **LOG_ADD_SOURCE** (default: `true`)
+  - Controls whether source file location (file path and line number) is included in log entries
+  - **Values**: `true` (default), `false`
+  - When enabled, each log entry includes the source file path and line number where the log was generated
+  - Useful for debugging but adds overhead and increases log size
+  - In high-volume production environments, consider disabling to reduce log storage costs
+
+- **LOG_LEVEL** (default: `INFO`)
+  - Controls the minimum severity level for log messages
+  - **Values**: `DEBUG`, `INFO` (default), `WARN`, `ERROR`
+  - Sets the minimum log level to output. Messages below this level will be filtered out
+  - Use `DEBUG` for verbose logging during troubleshooting, `INFO` for normal operation, `WARN` to see only warnings and errors, or `ERROR` to see only errors
+  - Adjusting the log level can help reduce log volume and storage costs in production
+
+**Example Configuration:**
 ```bash
-# For JSON logging (default, recommended for production)
-# LOG_FORMAT=json  # or omit the variable entirely
+# Disable connection validation (not recommended)
+VALIDATE_CONNECTIONS=false
+
+# Enable strict validation (fail if any connection is misconfigured)
+REQUIRE_VALID_CONNECTIONS=true
+
+# Require control plane configuration (fail if cannot retrieve)
+REQUIRE_CONTROL_PLANE=true
 
 # For text logging (useful for debugging)
 LOG_FORMAT=text
-```
-
-#### `LOG_ADD_SOURCE` (optional)
-Controls whether source file location (file path and line number) is included in log entries.
-**Values**: `true` (default), `false`
-**Default**: `true`
-
-When enabled, each log entry includes the source file path and line number where the log was generated. This is useful for debugging but adds overhead and increases log size. In high-volume production environments, consider disabling to reduce log storage costs.
-
-To configure in your deployment:
-```bash
-# With source location (default)
-# LOG_ADD_SOURCE=true  # or omit the variable entirely
 
 # Without source location (reduces log size and overhead)
 LOG_ADD_SOURCE=false
-```
-
-#### `LOG_LEVEL` (optional)
-Controls the minimum severity level for log messages.
-**Values**: `DEBUG`, `INFO` (default), `WARN`, `ERROR`
-**Default**: `INFO`
-
-Sets the minimum log level to output. Messages below this level will be filtered out. Use `DEBUG` for verbose logging during troubleshooting, `INFO` for normal operation, `WARN` to see only warnings and errors, or `ERROR` to see only errors. Adjusting the log level can help reduce log volume and storage costs in production.
-
-To configure in your deployment:
-```bash
-# INFO level (default)
-# LOG_LEVEL=INFO  # or omit the variable entirely
 
 # DEBUG level for troubleshooting
 LOG_LEVEL=DEBUG
-
-# WARN level to reduce log volume in production
-LOG_LEVEL=WARN
 ```
 
 ### Resource Configuration
