@@ -161,4 +161,4 @@ Models can be overridden per environment in overlay `agent.yaml` files.
 
 Images are hosted at: `europe-docker.pkg.dev/synq-cicd-public/synq-public/synq-scout`
 
-Current version in deployment: `v0.1.9`
+Current version: See `base/deployment.yaml` (auto-updated on releases)
