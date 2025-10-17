@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This repository contains Kubernetes deployment configurations for SYNQ Scout AI, a service that requires access to Claude models through an OpenAI-compatible API (typically via LiteLLM proxy). SYNQ Scout has been tested with LiteLLM v1.77.5-stable.
 
+**Official Documentation**: https://docs.synq.io/dw-integrations/agent#config-file-schema
+
 ## Build and Deployment Commands
 
 ### Generate Kubernetes Manifests
@@ -87,6 +89,40 @@ The project uses **Kustomize** for environment-based configuration management:
 
 The deployment mounts the ConfigMap at `/opt/synq-scout/` and injects Secret values as environment variables.
 
+### Database Connection Configuration
+
+Database connections are defined in the `connections` section of `agent.yaml`. Each connection configuration includes:
+
+**Fields**:
+- **Connection ID** (required): A string identifier that should match the integration ID from SYNQ platform
+  - UUIDs are strongly recommended (e.g., `"52467b4f-cbab-4255-8cfc-07a11a726855"`) as they improve deterministic agent behavior
+  - Other string identifiers can be used but may affect consistency
+- **name** (optional): Human-readable connection name
+  - Defaults to connection ID if not specified
+- **disabled** (optional): Boolean flag (`false` to enable, `true` to disable)
+  - Defaults to `false` (enabled) if not specified
+- **parallelism** (optional): Number of parallel queries
+  - Defaults to `8` if not specified (suitable for medium/large warehouses)
+  - Small warehouses / development: `1-2` (override default)
+  - Medium warehouses: `4-8` (default is appropriate)
+  - Large warehouses: `8-16` (default or higher)
+  - Serverless/autoscaling warehouses: `16+` to leverage automatic scaling
+- **Database-specific config** (required): Credentials and connection details for the specific database type
+
+**Recommended Approach**: Use the SYNQ UI to auto-generate connection configurations at https://app.synq.io/settings/scout. This ensures:
+- Connection IDs match SYNQ platform integration IDs
+- UUIDs are used for deterministic behavior
+- All required fields are included with proper structure
+
+**Credential Management**:
+- Use environment variable references (e.g., `${POSTGRES_PASSWORD}`) in `agent.yaml` for all sensitive credentials
+- Define actual credential values in `agent.env` files
+- Environment variables from `agent.env` are injected into the container via Kubernetes Secrets
+
+**Supported Databases**: PostgreSQL, MySQL, BigQuery, ClickHouse, Snowflake, Redshift, Databricks, Trino
+
+See `base/agent.yaml` for configuration examples of the most common database types.
+
 ### Container Image Auto-Updates with Keel
 
 The deployment includes Keel annotations for automatic container updates:
@@ -125,4 +161,4 @@ Models can be overridden per environment in overlay `agent.yaml` files.
 
 Images are hosted at: `europe-docker.pkg.dev/synq-cicd-public/synq-public/synq-scout`
 
-Current version in deployment: `v0.1.7`
+Current version: See `base/deployment.yaml` (auto-updated on releases)
