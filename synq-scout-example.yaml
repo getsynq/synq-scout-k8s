@@ -1,14 +1,25 @@
 apiVersion: v1
 data:
   agent.yaml: |
+    # Example environment overlay - customize for your environment
+    # This file merges with base/agent.yaml
+
+    # Override LLM configuration for this environment
     llm:
       openai:
         base_url: "http://litellm-service.litellm.svc.cluster.local:4000/v1/chat/completions"
         thinking_model: "claude-4-5-sonnet"
         summary_model: "claude-4-5-sonnet"
+
+    # Override or add connections for this environment
+    # For production, generate connections from https://app.synq.io/settings/scout
+    #
+    # This example shows minimal configuration - name, disabled, and parallelism
+    # have sensible defaults and can be omitted
     connections:
-      "postgres":
-        name: "PostgreSQL"
+      "52467b4f-cbab-4255-8cfc-07a11a726855":
+        name: "PostgreSQL Example"
+        parallelism: 2  # Override default of 8 for small dev database
         postgres:
           host: localhost
           port: 54320
@@ -23,8 +34,12 @@ metadata:
 ---
 apiVersion: v1
 data:
+  BIGQUERY_SERVICE_ACCOUNT_KEY: eW91ci1iaWdxdWVyeS1zZXJ2aWNlLWFjY291bnQta2V5LWpzb24=
+  CLICKHOUSE_PASSWORD: eW91ci1jbGlja2hvdXNlLXBhc3N3b3Jk
+  MYSQL_PASSWORD: eW91ci1teXNxbC1wYXNzd29yZA==
   OPENAI_API_KEY: ZXhhbXBsZS1vcGVuYWktYXBpLWtleQ==
   POSTGRES_PASSWORD: cGFzcw==
+  SNOWFLAKE_PASSWORD: eW91ci1zbm93Zmxha2UtcGFzc3dvcmQ=
   SYNQ_CLIENT_ID: ZXhhbXBsZS1jbGllbnQtaWQtZnJvbS1zeW5x
   SYNQ_CLIENT_SECRET: ZXhhbXBsZS1jbGllbnQtc2VjcmV0LWZyb20tc3lucQ==
 kind: Secret

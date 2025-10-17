@@ -1,7 +1,12 @@
+# Configuration file for SYNQ Scout AI Agent
+# Documentation: https://docs.synq.io/dw-integrations/agent#config-file-schema
+#
+# Note: Database connections can be automatically generated from SYNQ UI:
+#       https://app.synq.io/settings/scout
+
 synq:
   client_id: ${SYNQ_CLIENT_ID}
   client_secret: ${SYNQ_CLIENT_SECRET}
-connections: {}
 
 llm:
   openai:
@@ -9,3 +14,84 @@ llm:
     api_key: ${OPENAI_API_KEY}
     thinking_model: "claude-4-5-sonnet"
     summary_model: "claude-4-5-sonnet"
+
+# Database connections configuration
+#
+# IMPORTANT: Connection IDs should match the IDs from SYNQ platform integrations
+# for proper mapping between the Agent and SYNQ platform.
+#
+# Using UUIDs as connection IDs is strongly recommended as it improves deterministic
+# behavior of the agent, though other string identifiers can be used.
+#
+# STRONGLY RECOMMENDED: Generate connection configs from https://app.synq.io/settings/scout
+# This ensures:
+# - Connection IDs match SYNQ platform integration IDs
+# - Proper structure with all required fields
+# - Consistent configuration across environments
+#
+# Connection fields (all optional with defaults):
+# - name: Human-readable connection name (defaults to connection ID)
+# - disabled: Boolean to enable/disable the connection (defaults to false/enabled)
+# - parallelism: Number of parallel queries (defaults to 8 if not specified)
+#   * Small warehouses / development: 1-2
+#   * Medium warehouses: 4-8 (default is good)
+#   * Large warehouses: 8-16
+#   * Serverless/autoscaling warehouses: 16+ for better performance leveraging auto-scaling
+#
+connections:
+  # Example 1: Small PostgreSQL database with reduced parallelism
+  "52467b4f-cbab-4255-8cfc-07a11a726855":
+    name: "PostgreSQL Dev"
+    disabled: false
+    parallelism: 2  # Override default for small warehouse
+    postgres:
+      host: localhost
+      port: 5432
+      username: postgres
+      password: ${POSTGRES_PASSWORD}
+      database: mydb
+      allow_insecure: true
+
+  # Example 2: MySQL with defaults (name=connection ID, parallelism=8, disabled=false)
+  "cfb09443-df6e-4222-a9ac-0ab48bc8fa2b":
+    mysql:
+      host: localhost
+      port: 3306
+      username: root
+      password: ${MYSQL_PASSWORD}
+      database: mydb
+      allow_insecure: true
+      params:
+        charset: utf8mb4
+        parseTime: "true"
+
+  # Example 3: BigQuery with defaults (suitable for serverless)
+  "a5a7de87-ee0a-46c3-b455-f319ee71dd16":
+    name: "BigQuery Production"
+    bigquery:
+      project_id: my-project-id
+      region: us-central1
+      service_account_key: ${BIGQUERY_SERVICE_ACCOUNT_KEY}
+
+  # Example 4: ClickHouse temporarily disabled
+  "b1a5dc06-9bb1-446e-894a-82ab89236c6f":
+    name: "ClickHouse Staging"
+    disabled: true  # Connection is configured but not active
+    clickhouse:
+      host: clickhouse.example.com
+      port: 9440
+      username: default
+      password: ${CLICKHOUSE_PASSWORD}
+
+  # Example 5: Snowflake with high parallelism for large warehouse
+  "db42cf55-e818-49dc-8363-887b3ee11954":
+    name: "Snowflake Production"
+    parallelism: 16  # Higher for large warehouse
+    snowflake:
+      account: "myorg-myaccount"
+      warehouse: "COMPUTE_WH"
+      role: "ACCOUNTADMIN"
+      username: "myuser"
+      password: ${SNOWFLAKE_PASSWORD}
+      databases: ["MYDB"]
+      use_get_ddl: true

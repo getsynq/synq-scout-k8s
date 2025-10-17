@@ -161,6 +161,57 @@ The `synq-scout health` command validates that the configuration is correct and 
 
 ## Configuration Guide
 
+### Database Connection Configuration
+
+SYNQ Scout connects to your data warehouses using connection configurations defined in `base/agent.yaml`. Each connection configuration includes:
+
+- **Connection ID** (required): A string identifier that should match the integration ID from SYNQ platform
+  - UUIDs are strongly recommended as they improve deterministic behavior
+  - Other string identifiers can be used but may affect agent behavior consistency
+- **name** (optional): Human-readable name for the connection
+  - Defaults to the connection ID if not specified
+- **disabled** (optional): Boolean flag to enable/disable the connection
+  - Defaults to `false` (enabled) if not specified
+- **parallelism** (optional): Number of parallel queries
+  - Defaults to `8` if not specified
+  - Adjust based on warehouse size and capabilities (see guidance below)
+- **Database credentials** (required): Specific configuration for your database type
+
+**Connection ID Matching**: Connection IDs should match the IDs from your SYNQ platform integrations. This ensures the Agent can correctly map connections to SYNQ platform data and maintain consistent tracking.
+
+**Recommended Setup Method**:
+
+**Auto-generate from SYNQ UI** (Strongly Recommended): Visit https://app.synq.io/settings/scout to automatically generate connection configurations. This ensures:
+- Connection IDs match SYNQ platform integration IDs
+- UUIDs are used for deterministic agent behavior
+- All required fields are included with correct structure
+- Consistent configuration across environments
+
+**Manual Configuration** (Not Recommended): If you must configure manually, you need to:
+1. Obtain the correct ID from your SYNQ platform integration (preferably UUID)
+2. Configure database-specific credentials
+3. Optionally customize `name`, `disabled`, or `parallelism` (if defaults don't suit your needs)
+4. Use environment variable references for credentials (e.g., `${POSTGRES_PASSWORD}`)
+5. Define corresponding environment variables in `base/agent.env` or your overlay's `.env` file
+
+**Parallelism Configuration**:
+
+The `parallelism` setting controls how many queries can run concurrently per connection. The default value is **8**, which works well for most medium to large warehouses. Adjust based on your warehouse:
+
+- **Small warehouses / Development**: `parallelism: 1-2` (reduce from default to avoid overwhelming small systems)
+- **Medium warehouses**: `parallelism: 4-8` (default of 8 is appropriate)
+- **Large warehouses**: `parallelism: 8-16` (default is good, or increase for better throughput)
+- **Serverless/Autoscaling warehouses**: `parallelism: 16+` (increase to fully leverage automatic scaling capabilities)
+
+**Supported Database Types**:
+- PostgreSQL
+- MySQL
+- BigQuery
+- ClickHouse
+- Snowflake
+
+For detailed configuration schema and additional options, see the [official documentation](https://docs.synq.io/dw-integrations/agent#config-file-schema).
+
 ### Environment Variables
 
 Environment variables are managed in two places:
