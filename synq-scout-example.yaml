@@ -44,6 +44,7 @@ data:
   SNOWFLAKE_PRIVATE_KEY: eW91ci1zbm93Zmxha2UtcHJpdmF0ZS1rZXktcGVtLWNvbnRlbnQ=
   SYNQ_CLIENT_ID: ZXhhbXBsZS1jbGllbnQtaWQtZnJvbS1zeW5x
   SYNQ_CLIENT_SECRET: ZXhhbXBsZS1jbGllbnQtc2VjcmV0LWZyb20tc3lucQ==
+  TRINO_PASSWORD: eW91ci10cmluby1wYXNzd29yZA==
 kind: Secret
 metadata:
   name: example-synq-scout-agent-env

@@ -122,4 +122,5 @@ connections:
       host: "trino.example.com"
       port: 8080
       username: "admin"
+      password: ${TRINO_PASSWORD}
       catalog: "hive"
