@@ -119,9 +119,9 @@ Database connections are defined in the `connections` section of `agent.yaml`. E
 - Define actual credential values in `agent.env` files
 - Environment variables from `agent.env` are injected into the container via Kubernetes Secrets
 
-**Supported Databases**: PostgreSQL, MySQL, BigQuery, ClickHouse, Snowflake
+**Supported Databases**: PostgreSQL, MySQL, BigQuery, ClickHouse, Snowflake, Redshift, Databricks, Trino
 
-See `base/agent.yaml` for complete examples of each database type.
+See `base/agent.yaml` for configuration examples of the most common database types.
 
 ### Container Image Auto-Updates with Keel
 

@@ -209,6 +209,9 @@ The `parallelism` setting controls how many queries can run concurrently per con
 - BigQuery
 - ClickHouse
 - Snowflake
+- Redshift
+- Databricks
+- Trino
 
 For detailed configuration schema and additional options, see the [official documentation](https://docs.synq.io/dw-integrations/agent#config-file-schema).
 
