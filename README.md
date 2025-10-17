@@ -222,6 +222,57 @@ Environment variables are managed in two places:
 - Base configuration: `base/agent.env`
 - Environment-specific variables: Located in respective overlay directories
 
+#### `LOG_FORMAT` (optional)
+Controls the output format for structured logging.
+**Values**: `json` (default), `text`
+**Default**: `json`
+
+When set to `text`, logs are output in human-readable text format suitable for development and debugging. When unset or set to `json`, logs are output in JSON format suitable for production and log aggregation systems.
+
+To configure in your deployment, add the environment variable to `base/agent.env` or your overlay's environment configuration:
+```bash
+# For JSON logging (default, recommended for production)
+# LOG_FORMAT=json  # or omit the variable entirely
+
+# For text logging (useful for debugging)
+LOG_FORMAT=text
+```
+
+#### `LOG_ADD_SOURCE` (optional)
+Controls whether source file location (file path and line number) is included in log entries.
+**Values**: `true` (default), `false`
+**Default**: `true`
+
+When enabled, each log entry includes the source file path and line number where the log was generated. This is useful for debugging but adds overhead and increases log size. In high-volume production environments, consider disabling to reduce log storage costs.
+
+To configure in your deployment:
+```bash
+# With source location (default)
+# LOG_ADD_SOURCE=true  # or omit the variable entirely
+
+# Without source location (reduces log size and overhead)
+LOG_ADD_SOURCE=false
+```
+
+#### `LOG_LEVEL` (optional)
+Controls the minimum severity level for log messages.
+**Values**: `DEBUG`, `INFO` (default), `WARN`, `ERROR`
+**Default**: `INFO`
+
+Sets the minimum log level to output. Messages below this level will be filtered out. Use `DEBUG` for verbose logging during troubleshooting, `INFO` for normal operation, `WARN` to see only warnings and errors, or `ERROR` to see only errors. Adjusting the log level can help reduce log volume and storage costs in production.
+
+To configure in your deployment:
+```bash
+# INFO level (default)
+# LOG_LEVEL=INFO  # or omit the variable entirely
+
+# DEBUG level for troubleshooting
+LOG_LEVEL=DEBUG
+
+# WARN level to reduce log volume in production
+LOG_LEVEL=WARN
+```
+
 ### Resource Configuration
 
 Resource limits and requests can be adjusted in:
