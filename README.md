@@ -213,6 +213,22 @@ The `parallelism` setting controls how many queries can run concurrently per con
 - Databricks
 - Trino
 
+**Database-Specific Configuration Notes**:
+
+**Snowflake Authentication**: Private key authentication is preferred (password auth is deprecated). Two methods are supported:
+- **Inline private key**: Store PEM content in environment variable
+  - Set `private_key: ${SNOWFLAKE_PRIVATE_KEY}` in `agent.yaml`
+  - Define `SNOWFLAKE_PRIVATE_KEY` in `agent.env` with the PEM content
+- **Private key file**: Store path to mounted secret file (recommended for Kubernetes)
+  - Set `private_key_file: "/opt/secrets/snowflake-private-key.pem"` in `agent.yaml`
+  - Mount the key file via Kubernetes Secret
+- Both methods support encrypted keys via optional `private_key_passphrase` parameter
+
+**MySQL Configuration**: Enhanced with additional connection options:
+- `database`: Database name to connect to
+- `allow_insecure`: Boolean flag to allow non-TLS connections (default: false)
+- `params`: Map of custom connection parameters (e.g., `charset`, `parseTime`)
+
 For detailed configuration schema and additional options, see the [official documentation](https://docs.synq.io/dw-integrations/agent#config-file-schema).
 
 ### Environment Variables

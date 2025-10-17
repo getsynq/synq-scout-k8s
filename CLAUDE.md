@@ -89,6 +89,9 @@ The project uses **Kustomize** for environment-based configuration management:
    - `VALIDATE_CONNECTIONS` (optional): Enable/disable connection validation on startup (default: true)
    - `REQUIRE_VALID_CONNECTIONS` (optional): Make validation failures fatal (default: false)
    - `REQUIRE_CONTROL_PLANE` (optional): Make control plane config retrieval failures fatal (default: false, retries 3 times with exponential backoff)
+   - `LOG_FORMAT` (optional): Logging output format - `json` (default) or `text`
+   - `LOG_ADD_SOURCE` (optional): Include source file location in logs - `true` (default) or `false`
+   - `LOG_LEVEL` (optional): Minimum log level - `DEBUG`, `INFO` (default), `WARN`, or `ERROR`
 
 The deployment mounts the ConfigMap at `/opt/synq-scout/` and injects Secret values as environment variables.
 
@@ -123,6 +126,13 @@ Database connections are defined in the `connections` section of `agent.yaml`. E
 - Environment variables from `agent.env` are injected into the container via Kubernetes Secrets
 
 **Supported Databases**: PostgreSQL, MySQL, BigQuery, ClickHouse, Snowflake, Redshift, Databricks, Trino
+
+**Snowflake Authentication**: Snowflake supports two methods for private key authentication (password auth is deprecated):
+- **Inline private key**: Store PEM content in environment variable (`private_key: ${SNOWFLAKE_PRIVATE_KEY}`)
+- **Private key file**: Store path to mounted secret file (`private_key_file: "/opt/secrets/snowflake-private-key.pem"`)
+- Both methods support encrypted keys via optional `private_key_passphrase` parameter
+
+**MySQL Configuration**: Supports `database` parameter, `allow_insecure` flag for non-TLS connections, and custom connection parameters via `params` map.
 
 See `base/agent.yaml` for configuration examples of the most common database types.
 
