@@ -23,7 +23,7 @@ Before you begin, ensure you have:
 
 - ✅ Kubernetes cluster access configured
 - ✅ `kubectl` CLI tool installed (v1.14+ with built-in kustomize support)
-- ✅ Access to the container registry where the images are stored
+- ✅ Access to the container registry where the images are stored (multi-arch images available for both amd64 and arm64)
 - ✅ OpenAI-compatible API serving Claude 4 or 4.5 models (we recommend [LiteLLM](https://docs.litellm.ai/) v1.77.5-stable or later as a proxy)
 
 ## Project Structure

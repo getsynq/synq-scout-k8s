@@ -7,7 +7,6 @@ services:
   synq-scout:
     image: europe-docker.pkg.dev/synq-cicd-public/synq-public/synq-scout:latest
     pull_policy: always
-    platform: linux/amd64
     environment:
       POSTGRES_PASSWORD: pass
       SYNQ_CLIENT_ID: example-client-id-from-synq
