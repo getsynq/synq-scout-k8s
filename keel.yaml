@@ -124,7 +124,7 @@ spec:
         
         - name: keel
           # Note that we use appVersion to get images tag.
-          image: "keelhq/keel:0.21.1"
+          image: "ghcr.io/keel-hq/keel:0.21.1"
           imagePullPolicy: Always
           command: ["/bin/keel"]
           env:
