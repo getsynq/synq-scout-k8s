@@ -8,8 +8,8 @@ data:
     llm:
       openai:
         base_url: "http://litellm-service.litellm.svc.cluster.local:4000/v1/chat/completions"
-        thinking_model: "claude-4-5-sonnet"
-        summary_model: "claude-4-5-sonnet"
+        thinking_model: "claude-4-6-sonnet"
+        summary_model: "claude-4-5-haiku"
 
     # Override or add connections for this environment
     # For production, generate connections from https://app.synq.io/settings/scout
@@ -40,10 +40,10 @@ data:
   MYSQL_PASSWORD: eW91ci1teXNxbC1wYXNzd29yZA==
   OPENAI_API_KEY: ZXhhbXBsZS1vcGVuYWktYXBpLWtleQ==
   POSTGRES_PASSWORD: cGFzcw==
+  QUALITY_CLIENT_ID: ZXhhbXBsZS1jbGllbnQtaWQ=
+  QUALITY_CLIENT_SECRET: ZXhhbXBsZS1jbGllbnQtc2VjcmV0
   REDSHIFT_PASSWORD: eW91ci1yZWRzaGlmdC1wYXNzd29yZA==
   SNOWFLAKE_PRIVATE_KEY: eW91ci1zbm93Zmxha2UtcHJpdmF0ZS1rZXktcGVtLWNvbnRlbnQ=
-  SYNQ_CLIENT_ID: ZXhhbXBsZS1jbGllbnQtaWQtZnJvbS1zeW5x
-  SYNQ_CLIENT_SECRET: ZXhhbXBsZS1jbGllbnQtc2VjcmV0LWZyb20tc3lucQ==
   TRINO_PASSWORD: eW91ci10cmluby1wYXNzd29yZA==
 kind: Secret
 metadata:
@@ -74,7 +74,7 @@ spec:
       - envFrom:
         - secretRef:
             name: example-synq-scout-agent-env
-        image: europe-docker.pkg.dev/synq-cicd-public/synq-public/synq-scout:v0.1.12
+        image: europe-docker.pkg.dev/synq-cicd-public/synq-public/synq-scout:v0.4.0
         imagePullPolicy: Always
         name: synq-scout-container
         volumeMounts:

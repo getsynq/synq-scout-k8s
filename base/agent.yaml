@@ -1,31 +1,32 @@
-# Configuration file for SYNQ Scout AI Agent
-# Documentation: https://docs.synq.io/dw-integrations/agent#config-file-schema
+# yaml-language-server: $schema=https://schemas.synq.io/synq-scout/v1/config.schema.json
+# Configuration file for Coalesce Quality Scout Agent
+# Documentation: https://schemas.synq.io/synq-scout/v1/config.html
 #
-# Note: Database connections can be automatically generated from SYNQ UI:
+# Note: Database connections can be automatically generated from Coalesce Quality:
 #       https://app.synq.io/settings/scout
 
 synq:
-  client_id: ${SYNQ_CLIENT_ID}
-  client_secret: ${SYNQ_CLIENT_SECRET}
+  client_id: ${QUALITY_CLIENT_ID}
+  client_secret: ${QUALITY_CLIENT_SECRET}
 
 llm:
   openai:
     base_url: "http://litellm:4000/v1/chat/completions"
     api_key: ${OPENAI_API_KEY}
-    thinking_model: "claude-4-5-sonnet"
-    summary_model: "claude-4-5-sonnet"
+    thinking_model: "claude-4-6-sonnet"
+    summary_model: "claude-4-5-haiku"
 
 # Database connections configuration
 #
-# IMPORTANT: Connection IDs should match the IDs from SYNQ platform integrations
-# for proper mapping between the Agent and SYNQ platform.
+# IMPORTANT: Connection IDs should match the IDs from Coalesce Quality integrations
+# for proper mapping between the Agent and Coalesce Quality.
 #
 # Using UUIDs as connection IDs is strongly recommended as it improves deterministic
 # behavior of the agent, though other string identifiers can be used.
 #
 # STRONGLY RECOMMENDED: Generate connection configs from https://app.synq.io/settings/scout
 # This ensures:
-# - Connection IDs match SYNQ platform integration IDs
+# - Connection IDs match Coalesce Quality integration IDs
 # - Proper structure with all required fields
 # - Consistent configuration across environments
 #

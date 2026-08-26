@@ -1,6 +1,6 @@
-# SYNQ Scout AI Kubernetes Deployment Guide
+# Coalesce Quality Scout Kubernetes Deployment Guide
 
-This guide provides step-by-step instructions for deploying the SYNQ Scout AI service on Kubernetes. You can choose between two deployment methods:
+This guide provides step-by-step instructions for deploying the Coalesce Quality Scout service on Kubernetes. You can choose between two deployment methods:
 
 1. **Recommended**: Using Kustomize (for better environment management and configuration)
 2. Direct deployment using kubectl
@@ -24,7 +24,7 @@ Before you begin, ensure you have:
 - ✅ Kubernetes cluster access configured
 - ✅ `kubectl` CLI tool installed (v1.14+ with built-in kustomize support)
 - ✅ Access to the container registry where the images are stored (multi-arch images available for both amd64 and arm64)
-- ✅ OpenAI-compatible API serving Claude 4 or 4.5 models (we recommend [LiteLLM](https://docs.litellm.ai/) v1.77.5-stable or later as a proxy)
+- ✅ OpenAI-compatible API serving a Claude Sonnet model (we recommend [LiteLLM](https://docs.litellm.ai/) v1.77.5-stable or later as a proxy)
 
 ## Project Structure
 
@@ -41,7 +41,7 @@ synq-scout-k8s/
 
 ## API Requirements
 
-SYNQ Scout requires access to an OpenAI-compatible API serving Claude 4 or Claude 4.5 models. We recommend using **LiteLLM v1.77.5-stable or later** as a proxy to handle this requirement.
+Coalesce Quality Scout requires access to an OpenAI-compatible API serving a Claude Sonnet model. We recommend using **LiteLLM v1.77.5-stable or later** as a proxy to handle this requirement.
 
 ### Setting up LiteLLM
 
@@ -56,7 +56,11 @@ Follow the [LiteLLM Kubernetes deployment guide](https://docs.litellm.ai/docs/pr
 3. **Deployment** with the LiteLLM container
 4. **Service** to expose the proxy
 
-Example configuration for Claude models:
+Two names meet in this file and they are not the same thing. `model_name` is what
+Scout asks for, so it has to match `thinking_model` / `summary_model` in
+`agent.yaml`. `litellm_params.model` is whatever your provider calls that model,
+which differs per provider.
+
 ```yaml
 apiVersion: v1
 kind: ConfigMap
@@ -65,41 +69,50 @@ metadata:
 data:
   config.yaml: |
     model_list:
-       - model_name: claude-4-5-sonnet
+       - model_name: claude-4-6-sonnet        # what Scout requests
          litellm_params:
-           model: claude-4-5-sonnet
+           model: <your-provider-model-id>    # e.g. anthropic/..., vertex_ai/..., bedrock/...
+           api_key: os.environ/ANTHROPIC_API_KEY
+       - model_name: claude-4-5-haiku
+         litellm_params:
+           model: <your-provider-model-id>
            api_key: os.environ/ANTHROPIC_API_KEY
 ```
 
-Claude models can be accessed through multiple providers via LiteLLM:
-- **Direct Anthropic API**: Use `claude-4-5-sonnet` or `claude-4-sonnet` with `ANTHROPIC_API_KEY`
-- **Google Vertex AI**: Use `vertex_ai/claude-4-5-sonnet` or `vertex_ai/claude-4-sonnet` with Google Cloud credentials
-- **Amazon Bedrock**: Use `bedrock/claude-4-5-sonnet` or `bedrock/claude-4-sonnet` with AWS credentials
-
-For provider-specific configuration, refer to the [LiteLLM provider documentation](https://docs.litellm.ai/docs/providers).
+Claude is available through the direct Anthropic API, Google Vertex AI
+(`vertex_ai/` prefix) and Amazon Bedrock (`bedrock/` prefix). Each carries its own
+model identifiers and credentials, so take them from the [LiteLLM provider
+documentation](https://docs.litellm.ai/docs/providers) rather than assuming the
+name above.
 
 **Important**:
-- SYNQ Scout has been tested with LiteLLM v1.77.5-stable
+- Coalesce Quality Scout has been tested with LiteLLM v1.77.5-stable
 - Use versioned image tags (like v1.77.5-stable) instead of `main-stable` for production deployments
 
 #### Configuration
 
-After deploying LiteLLM, update your SYNQ Scout configuration to point to the LiteLLM service URL (e.g., `http://litellm-service:8000`) in your environment configuration files.
+After deploying LiteLLM, update your Coalesce Quality Scout configuration to point to the LiteLLM service URL (e.g., `http://litellm-service:8000`) in your environment configuration files.
 
 ### Model Configuration
 
-SYNQ Scout supports configurable AI models for different tasks:
+Coalesce Quality Scout uses two model roles:
 
-- **Thinking Model**: Used for complex reasoning and analysis
-- **Summary Model**: Used for generating summaries and reports
+- **Thinking model**: complex reasoning, triage and analysis
+- **Summary model**: generating summaries and reports
 
-**Recommended Configuration**:
-- **Claude 4.5 Sonnet** (`claude-4-5-sonnet`): Latest model, best quality for both thinking and summary tasks (still under review but no known issues)
-- **Claude 4 Sonnet** (`claude-4-sonnet`): Stable production-ready model, excellent quality for both thinking and summary tasks
-- `claude-3-5-haiku` can be used for summary generation (faster, cost-effective)
+**Recommended configuration**, and what this repository ships:
 
-⚠️ **Note**: 
-- Google AI Gemini models are work-in-progress and may work in some setups but are not recommended at this time
+| Role | Model | Why |
+|---|---|---|
+| `thinking_model` | `claude-4-6-sonnet` | Claude Sonnet 4.6. The agent's own default, and the model our hosted deployments run. |
+| `summary_model` | `claude-4-5-haiku` | Claude Haiku 4.5. Summaries do not need Sonnet, and Haiku is faster and cheaper. Set this to `claude-4-6-sonnet` too if you would rather configure one model. |
+
+Also selectable: `claude-4-5-sonnet` and `claude-3-5-haiku`, both a generation
+behind. Claude Sonnet 5 is not recommended yet, which is why the values above pin
+a version rather than tracking a moving alias.
+
+⚠️ **Note**:
+- Google AI Gemini models are work-in-progress and are not recommended at this time
 - OpenAI models are not supported
 
 Models are configured in `base/agent.yaml` and can be customized per environment using Kustomize overlays. To override model settings for a specific environment, create a patch in your overlay directory (e.g., `overlays/example/agent.yaml`).
@@ -157,15 +170,15 @@ kubectl logs -l app=synq-scout
 synq-scout health
 ```
 
-The `synq-scout health` command validates that the configuration is correct and LLM connections are working as expected. This command will verify connectivity to the Scout AI control plane, test available data warehouse connections, and ensure both thinking and summary models are functioning properly.
+The `synq-scout health` command validates that the configuration is correct and LLM connections are working as expected. This command will verify connectivity to the Coalesce Quality control plane, test available data warehouse connections, and ensure both thinking and summary models are functioning properly.
 
 ## Configuration Guide
 
 ### Database Connection Configuration
 
-SYNQ Scout connects to your data warehouses using connection configurations defined in `base/agent.yaml`. Each connection configuration includes:
+Coalesce Quality Scout connects to your data warehouses using connection configurations defined in `base/agent.yaml`. Each connection configuration includes:
 
-- **Connection ID** (required): A string identifier that should match the integration ID from SYNQ platform
+- **Connection ID** (required): A string identifier that should match the integration ID from Coalesce Quality
   - UUIDs are strongly recommended as they improve deterministic behavior
   - Other string identifiers can be used but may affect agent behavior consistency
 - **name** (optional): Human-readable name for the connection
@@ -177,18 +190,18 @@ SYNQ Scout connects to your data warehouses using connection configurations defi
   - Adjust based on warehouse size and capabilities (see guidance below)
 - **Database credentials** (required): Specific configuration for your database type
 
-**Connection ID Matching**: Connection IDs should match the IDs from your SYNQ platform integrations. This ensures the Agent can correctly map connections to SYNQ platform data and maintain consistent tracking.
+**Connection ID Matching**: Connection IDs should match the IDs from your Coalesce Quality integrations. This ensures the Agent can correctly map connections to Coalesce Quality data and maintain consistent tracking.
 
 **Recommended Setup Method**:
 
-**Auto-generate from SYNQ UI** (Strongly Recommended): Visit https://app.synq.io/settings/scout to automatically generate connection configurations. This ensures:
-- Connection IDs match SYNQ platform integration IDs
+**Auto-generate from Coalesce Quality** (Strongly Recommended): Visit https://app.synq.io/settings/scout to automatically generate connection configurations. This ensures:
+- Connection IDs match Coalesce Quality integration IDs
 - UUIDs are used for deterministic agent behavior
 - All required fields are included with correct structure
 - Consistent configuration across environments
 
 **Manual Configuration** (Not Recommended): If you must configure manually, you need to:
-1. Obtain the correct ID from your SYNQ platform integration (preferably UUID)
+1. Obtain the correct ID from your Coalesce Quality integration (preferably UUID)
 2. Configure database-specific credentials
 3. Optionally customize `name`, `disabled`, or `parallelism` (if defaults don't suit your needs)
 4. Use environment variable references for credentials (e.g., `${POSTGRES_PASSWORD}`)
@@ -229,7 +242,7 @@ The `parallelism` setting controls how many queries can run concurrently per con
 - `allow_insecure`: Boolean flag to allow non-TLS connections (default: false)
 - `params`: Map of custom connection parameters (e.g., `charset`, `parseTime`)
 
-For detailed configuration schema and additional options, see the [official documentation](https://docs.synq.io/dw-integrations/agent#config-file-schema).
+For detailed configuration schema and additional options, see the [official documentation](https://schemas.synq.io/synq-scout/v1/config.html).
 
 ### Environment Variables
 
@@ -240,9 +253,13 @@ Environment variables are managed in two places:
 
 #### Required Environment Variables
 
-- **SYNQ_CLIENT_ID**: OAuth client ID for Scout AI control plane authentication
-- **SYNQ_CLIENT_SECRET**: OAuth client secret for Scout AI control plane authentication
+- **QUALITY_CLIENT_ID**: OAuth client ID for Coalesce Quality control plane authentication
+- **QUALITY_CLIENT_SECRET**: OAuth client secret for Coalesce Quality control plane authentication
 - **OPENAI_API_KEY**: API key for the LiteLLM proxy or OpenAI-compatible endpoint
+
+`SYNQ_CLIENT_ID` and `SYNQ_CLIENT_SECRET` are the names these replaced. Both are
+still read, and the promoted name wins when both are set, so an existing
+deployment keeps working without being changed.
 
 #### Optional Environment Variables
 
@@ -259,7 +276,7 @@ Environment variables are managed in two places:
   - Only has effect when `VALIDATE_CONNECTIONS=true`
 
 - **REQUIRE_CONTROL_PLANE** (default: `false`)
-  - Makes Scout AI control plane configuration retrieval failures fatal
+  - Makes Coalesce Quality control plane configuration retrieval failures fatal
   - When set to `true`, the agent will refuse to start if it cannot retrieve configuration from the control plane
   - The agent retries 3 times with exponential backoff (2s, 4s, 8s) before failing
   - By default, the agent logs a warning but continues with local configuration only
@@ -314,7 +331,7 @@ Resource limits and requests can be adjusted in:
 
 ### Container Image Auto-Updates
 
-We recommend using an auto-update tool to keep your SYNQ Scout deployment current with the latest container versions. The agent deployment includes annotations to work with [Keel.sh](https://keel.sh/docs/) by default:
+We recommend using an auto-update tool to keep your Coalesce Quality Scout deployment current with the latest container versions. The agent deployment includes annotations to work with [Keel.sh](https://keel.sh/docs/) by default:
 
 ```yaml
 annotations:
@@ -377,4 +394,4 @@ If you encounter any issues or need help:
 
 1. Check the troubleshooting section above
 2. Review the logs using `kubectl logs`
-3. Contact the SYNQ team for support
+3. Contact Coalesce Quality support: https://docs.synq.io/support/support
