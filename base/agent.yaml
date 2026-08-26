@@ -6,8 +6,8 @@
 #       https://app.synq.io/settings/scout
 
 synq:
-  client_id: ${SYNQ_CLIENT_ID}
-  client_secret: ${SYNQ_CLIENT_SECRET}
+  client_id: ${QUALITY_CLIENT_ID}
+  client_secret: ${QUALITY_CLIENT_SECRET}
 
 llm:
   openai:

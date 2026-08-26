@@ -78,7 +78,7 @@ The project uses **Kustomize** for environment-based configuration management:
 **Configuration is split into two layers:**
 
 1. **ConfigMap** (`synq-scout-agent-config`): Generated from `agent.yaml`, contains:
-   - Coalesce Quality client credentials (referenced from environment variables)
+   - Coalesce Quality client credentials (`QUALITY_CLIENT_ID` / `QUALITY_CLIENT_SECRET`, referenced from environment variables)
    - Data warehouse connections
    - LLM settings (base_url, api_key, thinking_model, summary_model)
 

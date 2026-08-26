@@ -253,9 +253,13 @@ Environment variables are managed in two places:
 
 #### Required Environment Variables
 
-- **SYNQ_CLIENT_ID**: OAuth client ID for Coalesce Quality control plane authentication
-- **SYNQ_CLIENT_SECRET**: OAuth client secret for Coalesce Quality control plane authentication
+- **QUALITY_CLIENT_ID**: OAuth client ID for Coalesce Quality control plane authentication
+- **QUALITY_CLIENT_SECRET**: OAuth client secret for Coalesce Quality control plane authentication
 - **OPENAI_API_KEY**: API key for the LiteLLM proxy or OpenAI-compatible endpoint
+
+`SYNQ_CLIENT_ID` and `SYNQ_CLIENT_SECRET` are the names these replaced. Both are
+still read, and the promoted name wins when both are set, so an existing
+deployment keeps working without being changed.
 
 #### Optional Environment Variables
 
