@@ -24,7 +24,7 @@ Before you begin, ensure you have:
 - ✅ Kubernetes cluster access configured
 - ✅ `kubectl` CLI tool installed (v1.14+ with built-in kustomize support)
 - ✅ Access to the container registry where the images are stored (multi-arch images available for both amd64 and arm64)
-- ✅ OpenAI-compatible API serving Claude 4 or 4.5 models (we recommend [LiteLLM](https://docs.litellm.ai/) v1.77.5-stable or later as a proxy)
+- ✅ OpenAI-compatible API serving a Claude Sonnet model (we recommend [LiteLLM](https://docs.litellm.ai/) v1.77.5-stable or later as a proxy)
 
 ## Project Structure
 
@@ -41,7 +41,7 @@ synq-scout-k8s/
 
 ## API Requirements
 
-Coalesce Quality Scout requires access to an OpenAI-compatible API serving Claude 4 or Claude 4.5 models. We recommend using **LiteLLM v1.77.5-stable or later** as a proxy to handle this requirement.
+Coalesce Quality Scout requires access to an OpenAI-compatible API serving a Claude Sonnet model. We recommend using **LiteLLM v1.77.5-stable or later** as a proxy to handle this requirement.
 
 ### Setting up LiteLLM
 
@@ -56,7 +56,11 @@ Follow the [LiteLLM Kubernetes deployment guide](https://docs.litellm.ai/docs/pr
 3. **Deployment** with the LiteLLM container
 4. **Service** to expose the proxy
 
-Example configuration for Claude models:
+Two names meet in this file and they are not the same thing. `model_name` is what
+Scout asks for, so it has to match `thinking_model` / `summary_model` in
+`agent.yaml`. `litellm_params.model` is whatever your provider calls that model,
+which differs per provider.
+
 ```yaml
 apiVersion: v1
 kind: ConfigMap
@@ -65,18 +69,21 @@ metadata:
 data:
   config.yaml: |
     model_list:
-       - model_name: claude-4-5-sonnet
+       - model_name: claude-4-6-sonnet        # what Scout requests
          litellm_params:
-           model: claude-4-5-sonnet
+           model: <your-provider-model-id>    # e.g. anthropic/..., vertex_ai/..., bedrock/...
+           api_key: os.environ/ANTHROPIC_API_KEY
+       - model_name: claude-4-5-haiku
+         litellm_params:
+           model: <your-provider-model-id>
            api_key: os.environ/ANTHROPIC_API_KEY
 ```
 
-Claude models can be accessed through multiple providers via LiteLLM:
-- **Direct Anthropic API**: Use `claude-4-5-sonnet` or `claude-4-sonnet` with `ANTHROPIC_API_KEY`
-- **Google Vertex AI**: Use `vertex_ai/claude-4-5-sonnet` or `vertex_ai/claude-4-sonnet` with Google Cloud credentials
-- **Amazon Bedrock**: Use `bedrock/claude-4-5-sonnet` or `bedrock/claude-4-sonnet` with AWS credentials
-
-For provider-specific configuration, refer to the [LiteLLM provider documentation](https://docs.litellm.ai/docs/providers).
+Claude is available through the direct Anthropic API, Google Vertex AI
+(`vertex_ai/` prefix) and Amazon Bedrock (`bedrock/` prefix). Each carries its own
+model identifiers and credentials, so take them from the [LiteLLM provider
+documentation](https://docs.litellm.ai/docs/providers) rather than assuming the
+name above.
 
 **Important**:
 - Coalesce Quality Scout has been tested with LiteLLM v1.77.5-stable
@@ -88,18 +95,24 @@ After deploying LiteLLM, update your Coalesce Quality Scout configuration to poi
 
 ### Model Configuration
 
-Coalesce Quality Scout supports configurable AI models for different tasks:
+Coalesce Quality Scout uses two model roles:
 
-- **Thinking Model**: Used for complex reasoning and analysis
-- **Summary Model**: Used for generating summaries and reports
+- **Thinking model**: complex reasoning, triage and analysis
+- **Summary model**: generating summaries and reports
 
-**Recommended Configuration**:
-- **Claude 4.5 Sonnet** (`claude-4-5-sonnet`): Latest model, best quality for both thinking and summary tasks (still under review but no known issues)
-- **Claude 4 Sonnet** (`claude-4-sonnet`): Stable production-ready model, excellent quality for both thinking and summary tasks
-- `claude-3-5-haiku` can be used for summary generation (faster, cost-effective)
+**Recommended configuration**, and what this repository ships:
 
-⚠️ **Note**: 
-- Google AI Gemini models are work-in-progress and may work in some setups but are not recommended at this time
+| Role | Model | Why |
+|---|---|---|
+| `thinking_model` | `claude-4-6-sonnet` | Claude Sonnet 4.6. The agent's own default, and the model our hosted deployments run. |
+| `summary_model` | `claude-4-5-haiku` | Claude Haiku 4.5. Summaries do not need Sonnet, and Haiku is faster and cheaper. Set this to `claude-4-6-sonnet` too if you would rather configure one model. |
+
+Also selectable: `claude-4-5-sonnet` and `claude-3-5-haiku`, both a generation
+behind. Claude Sonnet 5 is not recommended yet, which is why the values above pin
+a version rather than tracking a moving alias.
+
+⚠️ **Note**:
+- Google AI Gemini models are work-in-progress and are not recommended at this time
 - OpenAI models are not supported
 
 Models are configured in `base/agent.yaml` and can be customized per environment using Kustomize overlays. To override model settings for a specific environment, create a patch in your overlay directory (e.g., `overlays/example/agent.yaml`).
