@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This repository contains Kubernetes deployment configurations for SYNQ Scout AI, a service that requires access to Claude models through an OpenAI-compatible API (typically via LiteLLM proxy). SYNQ Scout has been tested with LiteLLM v1.77.5-stable.
+This repository contains Kubernetes deployment configurations for Coalesce Quality Scout, a service that requires access to Claude models through an OpenAI-compatible API (typically via LiteLLM proxy). Coalesce Quality Scout has been tested with LiteLLM v1.77.5-stable.
 
-**Official Documentation**: https://docs.synq.io/dw-integrations/agent#config-file-schema
+**Official Documentation**: https://schemas.synq.io/synq-scout/v1/config.html
 
 ## Build and Deployment Commands
 
@@ -78,7 +78,7 @@ The project uses **Kustomize** for environment-based configuration management:
 **Configuration is split into two layers:**
 
 1. **ConfigMap** (`synq-scout-agent-config`): Generated from `agent.yaml`, contains:
-   - SYNQ client credentials (referenced from environment variables)
+   - Coalesce Quality client credentials (referenced from environment variables)
    - Data warehouse connections
    - LLM settings (base_url, api_key, thinking_model, summary_model)
 
@@ -100,7 +100,7 @@ The deployment mounts the ConfigMap at `/opt/synq-scout/` and injects Secret val
 Database connections are defined in the `connections` section of `agent.yaml`. Each connection configuration includes:
 
 **Fields**:
-- **Connection ID** (required): A string identifier that should match the integration ID from SYNQ platform
+- **Connection ID** (required): A string identifier that should match the integration ID from Coalesce Quality
   - UUIDs are strongly recommended (e.g., `"52467b4f-cbab-4255-8cfc-07a11a726855"`) as they improve deterministic agent behavior
   - Other string identifiers can be used but may affect consistency
 - **name** (optional): Human-readable connection name
@@ -115,8 +115,8 @@ Database connections are defined in the `connections` section of `agent.yaml`. E
   - Serverless/autoscaling warehouses: `16+` to leverage automatic scaling
 - **Database-specific config** (required): Credentials and connection details for the specific database type
 
-**Recommended Approach**: Use the SYNQ UI to auto-generate connection configurations at https://app.synq.io/settings/scout. This ensures:
-- Connection IDs match SYNQ platform integration IDs
+**Recommended Approach**: Use the Coalesce Quality UI to auto-generate connection configurations at https://app.synq.io/settings/scout. This ensures:
+- Connection IDs match Coalesce Quality integration IDs
 - UUIDs are used for deterministic behavior
 - All required fields are included with proper structure
 
