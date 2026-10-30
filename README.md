@@ -5,6 +5,14 @@ This guide provides step-by-step instructions for deploying the Coalesce Quality
 1. **Recommended**: Using Kustomize (for better environment management and configuration)
 2. Direct deployment using kubectl
 
+Scout releases, the CLI and the full configuration example live in
+[getsynq/synq-scout](https://github.com/getsynq/synq-scout): see its
+[Releases](https://github.com/getsynq/synq-scout/releases) for what changed in each version,
+its README for the configuration, and
+[agent.example.yaml](https://github.com/getsynq/synq-scout/blob/main/agent.example.yaml)
+for every connection type. The CLI reference is at <https://docs.synq.io/scout/cli>.
+This repository only holds the Kubernetes recipe.
+
 ## Quick Start
 
 If you're already familiar with Kubernetes and want to deploy quickly:
@@ -69,11 +77,11 @@ metadata:
 data:
   config.yaml: |
     model_list:
-       - model_name: claude-4-6-sonnet        # what Scout requests
+       - model_name: claude-5-5-sonnet        # what Scout requests
          litellm_params:
            model: <your-provider-model-id>    # e.g. anthropic/..., vertex_ai/..., bedrock/...
            api_key: os.environ/ANTHROPIC_API_KEY
-       - model_name: claude-4-5-haiku
+       - model_name: claude-5-5-haiku
          litellm_params:
            model: <your-provider-model-id>
            api_key: os.environ/ANTHROPIC_API_KEY
@@ -104,12 +112,13 @@ Coalesce Quality Scout uses two model roles:
 
 | Role | Model | Why |
 |---|---|---|
-| `thinking_model` | `claude-4-6-sonnet` | Claude Sonnet 4.6. The agent's own default, and the model our hosted deployments run. |
-| `summary_model` | `claude-4-5-haiku` | Claude Haiku 4.5. Summaries do not need Sonnet, and Haiku is faster and cheaper. Set this to `claude-4-6-sonnet` too if you would rather configure one model. |
+| `thinking_model` | `claude-5-5-sonnet` | Claude Sonnet 5.5. |
+| `summary_model` | `claude-5-5-haiku` | Claude Haiku 5.5. Summaries do not need Sonnet, and Haiku is faster and cheaper. Set this to `claude-5-5-sonnet` too if you would rather configure one model. |
 
-Also selectable: `claude-4-5-sonnet` and `claude-3-5-haiku`, both a generation
-behind. Claude Sonnet 5 is not recommended yet, which is why the values above pin
-a version rather than tracking a moving alias.
+Also selectable: `claude-5-5-opus` as the thinking model, at a higher cost, and the
+previous generation, `claude-4-6-sonnet` and `claude-4-5-haiku`. A thinking model
+left unset defaults to `claude-4-6-sonnet`, so set it explicitly. The values above
+pin a version rather than tracking a moving alias.
 
 ⚠️ **Note**:
 - Google AI Gemini models are work-in-progress and are not recommended at this time
@@ -164,11 +173,13 @@ kubectl get deployments
 kubectl get pods
 
 # View logs
-kubectl logs -l app=synq-scout
+kubectl -n synq logs -l deployment=synq-scout
 
-# Test configuration and LLM connectivity
-synq-scout health
+# Test configuration and LLM connectivity, inside the running pod
+kubectl -n synq exec deploy/example-synq-scout-deployment -- synq-scout health
 ```
+
+Drop the `example-` prefix, or use your own, to match the overlay you deployed.
 
 The `synq-scout health` command validates that the configuration is correct and LLM connections are working as expected. This command will verify connectivity to the Coalesce Quality control plane, test available data warehouse connections, and ensure both thinking and summary models are functioning properly.
 
@@ -225,6 +236,21 @@ The `parallelism` setting controls how many queries can run concurrently per con
 - Redshift
 - Databricks
 - Trino
+- SQL Server
+- Oracle
+- Amazon Athena
+- Microsoft Fabric
+- IBM Db2 (Linux, UNIX and Windows)
+
+DuckDB is the one connection type Scout cannot open. See
+[agent.example.yaml](https://github.com/getsynq/synq-scout/blob/main/agent.example.yaml)
+for the fields of each type.
+
+**BigQuery without a key**: instead of a service account key, a BigQuery connection
+can set `impersonate_service_accounts`. Scout starts from the pod's Application Default
+Credentials (for example a GKE workload identity) and impersonates the listed service
+accounts in order. Each one must grant `roles/iam.serviceAccountTokenCreator` to the
+identity before it. See Example 3B in `base/agent.yaml`.
 
 **Database-Specific Configuration Notes**:
 
@@ -337,7 +363,7 @@ We recommend using an auto-update tool to keep your Coalesce Quality Scout deplo
 annotations:
   keel.sh/policy: minor
   keel.sh/trigger: poll
-  keel.sh/pollSchedule: "@every 5m"
+  keel.sh/pollSchedule: "@every 1m"
 ```
 
 #### Keel.sh (Recommended)

@@ -1,6 +1,7 @@
 # yaml-language-server: $schema=https://schemas.synq.io/synq-scout/v1/config.schema.json
 # Configuration file for Coalesce Quality Scout Agent
 # Documentation: https://schemas.synq.io/synq-scout/v1/config.html
+# Releases and the full configuration example: https://github.com/getsynq/synq-scout
 #
 # Note: Database connections can be automatically generated from Coalesce Quality:
 #       https://app.synq.io/settings/scout
@@ -13,8 +14,8 @@ llm:
   openai:
     base_url: "http://litellm:4000/v1/chat/completions"
     api_key: ${OPENAI_API_KEY}
-    thinking_model: "claude-4-6-sonnet"
-    summary_model: "claude-4-5-haiku"
+    thinking_model: "claude-5-5-sonnet"
+    summary_model: "claude-5-5-haiku"
 
 # Database connections configuration
 #
@@ -74,6 +75,19 @@ connections:
       region: us-central1
       service_account_key: ${BIGQUERY_SERVICE_ACCOUNT_KEY}
 
+  # Example 3B: BigQuery without a service account key
+  # Scout starts from the pod's Application Default Credentials (for example a GKE
+  # workload identity) and impersonates the service accounts in order. Each one must
+  # grant roles/iam.serviceAccountTokenCreator to the identity before it.
+  # With no credential at all, Scout uses the Application Default Credentials directly.
+  # "a5a7de87-ee0a-46c3-b455-f319ee71dd16":
+  #   name: "BigQuery Production"
+  #   bigquery:
+  #     project_id: my-project-id
+  #     region: us-central1
+  #     impersonate_service_accounts:
+  #       - scout-reader@my-project-id.iam.gserviceaccount.com
+
   # Example 4: ClickHouse temporarily disabled
   "b1a5dc06-9bb1-446e-894a-82ab89236c6f":
     name: "ClickHouse Staging"
@@ -130,8 +144,8 @@ connections:
     name: "Databricks Production"
     databricks:
       workspace_url: "https://dbc-12345678-90ab.cloud.databricks.com"
-      http_path: "/sql/1.0/warehouses/abcd1234ef567890"
-      access_token: ${DATABRICKS_ACCESS_TOKEN}
+      warehouse: "abcd1234ef567890"  # SQL warehouse ID
+      auth_token: ${DATABRICKS_ACCESS_TOKEN}  # or auth_client + auth_secret for OAuth M2M
 
   # Example 8: Trino distributed SQL query engine
   "a1b2c345-6d78-9012-cdef-345678901234":

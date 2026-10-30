@@ -2,14 +2,16 @@ apiVersion: v1
 data:
   agent.yaml: |
     # Example environment overlay - customize for your environment
-    # This file merges with base/agent.yaml
+    # This file replaces base/agent.yaml as a whole, it is not merged with it.
+    # Settings left out here come from the environment: QUALITY_CLIENT_ID,
+    # QUALITY_CLIENT_SECRET and OPENAI_API_KEY from agent.env.
 
     # Override LLM configuration for this environment
     llm:
       openai:
         base_url: "http://litellm-service.litellm.svc.cluster.local:4000/v1/chat/completions"
-        thinking_model: "claude-4-6-sonnet"
-        summary_model: "claude-4-5-haiku"
+        thinking_model: "claude-5-5-sonnet"
+        summary_model: "claude-5-5-haiku"
 
     # Override or add connections for this environment
     # For production, generate connections from https://app.synq.io/settings/scout
@@ -74,7 +76,7 @@ spec:
       - envFrom:
         - secretRef:
             name: example-synq-scout-agent-env
-        image: europe-docker.pkg.dev/synq-cicd-public/synq-public/synq-scout:v0.4.0
+        image: europe-docker.pkg.dev/synq-cicd-public/synq-public/synq-scout:v0.8.0
         imagePullPolicy: Always
         name: synq-scout-container
         volumeMounts:
