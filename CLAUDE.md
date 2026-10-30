@@ -8,6 +8,8 @@ This repository contains Kubernetes deployment configurations for Coalesce Quali
 
 **Official Documentation**: https://schemas.synq.io/synq-scout/v1/config.html
 
+**Releases and the full configuration example**: https://github.com/getsynq/synq-scout. Read its release notes before you bump the image, and check `base/agent.yaml` against its `agent.example.yaml`.
+
 ## Build and Deployment Commands
 
 ### Generate Kubernetes Manifests
@@ -41,10 +43,10 @@ kubectl get deployments
 kubectl get pods
 
 # View logs
-kubectl logs -l deployment=synq-scout
+kubectl -n synq logs -l deployment=synq-scout
 
-# Test configuration and LLM connectivity
-synq-scout health
+# Test configuration and LLM connectivity, inside the running pod
+kubectl -n synq exec deploy/example-synq-scout-deployment -- synq-scout health
 ```
 
 ### Generate Keel Manifest
@@ -65,13 +67,12 @@ The project uses **Kustomize** for environment-based configuration management:
 - **`base/`**: Contains base Kubernetes resources
   - `deployment.yaml`: Deployment with Keel annotations for auto-updates
   - `agent.yaml`: Agent configuration with LLM settings (thinking_model and summary_model)
-  - `agent.env`: Environment variables for secrets (SYNQ_CLIENT_ID, SYNQ_CLIENT_SECRET, OPENAI_API_KEY)
+  - `agent.env`: Environment variables for secrets (QUALITY_CLIENT_ID, QUALITY_CLIENT_SECRET, OPENAI_API_KEY)
   - `kustomization.yaml`: Base kustomization with ConfigMap and Secret generators
 
 - **`overlays/`**: Environment-specific configurations
   - `example/`: Example environment with namePrefix "example-"
-  - `synq-staging/`: Staging environment
-  - Each overlay merges its own `agent.yaml` and `agent.env` with base configurations
+  - An overlay's `agent.yaml` replaces the base file as a whole. Its `agent.env` is merged key by key with the base one.
 
 ### Configuration Architecture
 
@@ -83,8 +84,8 @@ The project uses **Kustomize** for environment-based configuration management:
    - LLM settings (base_url, api_key, thinking_model, summary_model)
 
 2. **Secret** (`synq-scout-agent-env`): Generated from `agent.env`, contains:
-   - `SYNQ_CLIENT_ID`: Client ID from SYNQ
-   - `SYNQ_CLIENT_SECRET`: Client secret from SYNQ
+   - `QUALITY_CLIENT_ID`: Client ID from Coalesce Quality (`SYNQ_CLIENT_ID` is still read as a fallback)
+   - `QUALITY_CLIENT_SECRET`: Client secret from Coalesce Quality (`SYNQ_CLIENT_SECRET` is still read as a fallback)
    - `OPENAI_API_KEY`: API key for LiteLLM proxy
    - `VALIDATE_CONNECTIONS` (optional): Enable/disable connection validation on startup (default: true)
    - `REQUIRE_VALID_CONNECTIONS` (optional): Make validation failures fatal (default: false)
@@ -125,7 +126,7 @@ Database connections are defined in the `connections` section of `agent.yaml`. E
 - Define actual credential values in `agent.env` files
 - Environment variables from `agent.env` are injected into the container via Kubernetes Secrets
 
-**Supported Databases**: PostgreSQL, MySQL, BigQuery, ClickHouse, Snowflake, Redshift, Databricks, Trino
+**Supported Databases**: PostgreSQL, MySQL, BigQuery, ClickHouse, Snowflake, Redshift, Databricks, Trino, SQL Server, Oracle, Athena, Fabric, Db2. DuckDB is not supported.
 
 **Snowflake Authentication**: Snowflake supports two methods for private key authentication (password auth is deprecated):
 - **Inline private key**: Store PEM content in environment variable (`private_key: ${SNOWFLAKE_PRIVATE_KEY}`)
@@ -153,9 +154,9 @@ Deploy Keel using `kubectl apply -f keel.yaml`.
 
 Models are configured in `base/agent.yaml`:
 - `thinking_model`: Used for complex reasoning
-  - **Recommended**: `claude-4-5-sonnet` (latest, best quality, still under review but no known issues) or `claude-4-sonnet` (stable, production-ready)
+  - **Recommended**: `claude-5-5-sonnet`. `claude-5-5-opus` also works, at a higher cost.
 - `summary_model`: Used for summaries
-  - **Recommended**: `claude-4-5-sonnet` or `claude-4-sonnet` for best quality, or `claude-3-5-haiku` for cost optimization
+  - **Recommended**: `claude-5-5-haiku`, or `claude-5-5-sonnet` to configure one model
 - Both models must be available through the LiteLLM proxy at the configured `base_url`
 
 Models can be overridden per environment in overlay `agent.yaml` files.
