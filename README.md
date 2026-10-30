@@ -1,73 +1,63 @@
-# Coalesce Quality Scout Kubernetes Deployment Guide
+# Coalesce Quality Scout on Kubernetes
 
-This guide provides step-by-step instructions for deploying the Coalesce Quality Scout service on Kubernetes. You can choose between two deployment methods:
+This repository deploys Coalesce Quality Scout on Kubernetes. Scout connects to your data warehouses and uses Claude models to triage and analyse data quality issues.
 
-1. **Recommended**: Using Kustomize (for better environment management and configuration)
-2. Direct deployment using kubectl
+This repository only holds the Kubernetes recipe. The Scout releases, the CLI and the full configuration example are in [getsynq/synq-scout](https://github.com/getsynq/synq-scout):
 
-Scout releases, the CLI and the full configuration example live in
-[getsynq/synq-scout](https://github.com/getsynq/synq-scout): see its
-[Releases](https://github.com/getsynq/synq-scout/releases) for what changed in each version,
-its README for the configuration, and
-[agent.example.yaml](https://github.com/getsynq/synq-scout/blob/main/agent.example.yaml)
-for every connection type. The CLI reference is at <https://docs.synq.io/scout/cli>.
-This repository only holds the Kubernetes recipe.
+- [Releases](https://github.com/getsynq/synq-scout/releases) tell what changed in each version.
+- [agent.example.yaml](https://github.com/getsynq/synq-scout/blob/main/agent.example.yaml) shows every connection type.
+- The CLI reference is at <https://docs.synq.io/scout/cli>.
 
-## Quick Start
+You can deploy Scout in two ways:
 
-If you're already familiar with Kubernetes and want to deploy quickly:
+1. With Kustomize, from an overlay in `overlays/`. We recommend this method.
+2. With `kubectl apply` and the generated `synq-scout-example.yaml` file.
+
+## Quick start
 
 ```bash
-# Using Kustomize (Recommended)
+# With Kustomize
 kubectl apply -k overlays/example
 
-# OR using direct deployment
+# OR with the generated file
 kubectl apply -f synq-scout-example.yaml
 ```
 
+The `example` overlay connects to a test PostgreSQL database and uses example credentials. Change both before you use it.
+
 ## Prerequisites
 
-Before you begin, ensure you have:
+- Access to a Kubernetes cluster.
+- `kubectl` v1.14 or later, which includes Kustomize.
+- API credentials from Coalesce Quality. Create them under Settings → API in your workspace.
+- An OpenAI-compatible API that serves Claude models. We recommend [LiteLLM](https://docs.litellm.ai/) v1.77.5-stable or later as a proxy. See [Set up LiteLLM](#set-up-litellm).
 
-- ✅ Kubernetes cluster access configured
-- ✅ `kubectl` CLI tool installed (v1.14+ with built-in kustomize support)
-- ✅ Access to the container registry where the images are stored (multi-arch images available for both amd64 and arm64)
-- ✅ OpenAI-compatible API serving a Claude Sonnet model (we recommend [LiteLLM](https://docs.litellm.ai/) v1.77.5-stable or later as a proxy)
+The Scout image is public and is available for amd64 and arm64, so you do not need registry credentials.
 
-## Project Structure
+## Repository layout
 
 ```
 synq-scout-k8s/
-├── base/                  # Base Kubernetes configurations
-│   ├── deployment.yaml    # Main deployment configuration
-│   ├── kustomization.yaml # Base kustomization file
-│   ├── agent.yaml        # Agent configuration
-│   └── agent.env         # Environment variables, store secrets here
-└── overlays/             # Environment-specific overlays
-    └── example/          # Example environment configuration
+├── base/                    # Resources that all overlays share
+│   ├── deployment.yaml      # The Scout deployment
+│   ├── kustomization.yaml   # Generates the ConfigMap and the Secret
+│   ├── agent.yaml           # Scout configuration, with an example of each connection type
+│   └── agent.env            # Environment variables, with a placeholder for each secret
+├── overlays/
+│   └── example/             # Example overlay, copy it for your own environment
+└── synq-scout-example.yaml  # The example overlay, built into one file
 ```
 
-## API Requirements
+Git ignores everything in `overlays/` except the `example` overlay. Thus your own overlay and its secrets stay out of Git.
 
-Coalesce Quality Scout requires access to an OpenAI-compatible API serving a Claude Sonnet model. We recommend using **LiteLLM v1.77.5-stable or later** as a proxy to handle this requirement.
+## Set up LiteLLM
 
-### Setting up LiteLLM
+Scout sends its requests to an OpenAI-compatible API. LiteLLM gives this API for Claude models. Deploy LiteLLM as a separate service in your cluster. Follow the [LiteLLM Kubernetes guide](https://docs.litellm.ai/docs/proxy/deploy#kubernetes). The guide deploys a ConfigMap, a Secret, a Deployment and a Service.
 
-LiteLLM provides a unified interface for various AI models and can serve Claude models through an OpenAI-compatible API. For Kubernetes deployments, LiteLLM should be deployed as a separate service.
+The LiteLLM configuration has two model names for each model:
 
-#### Kubernetes Deployment (Recommended)
-
-Follow the [LiteLLM Kubernetes deployment guide](https://docs.litellm.ai/docs/proxy/deploy#kubernetes) to deploy LiteLLM in your Kubernetes cluster. The basic deployment includes:
-
-1. **ConfigMap** for LiteLLM configuration
-2. **Secret** for API keys
-3. **Deployment** with the LiteLLM container
-4. **Service** to expose the proxy
-
-Two names meet in this file and they are not the same thing. `model_name` is what
-Scout asks for, so it has to match `thinking_model` / `summary_model` in
-`agent.yaml`. `litellm_params.model` is whatever your provider calls that model,
-which differs per provider.
+- `model_name` is the name that Scout requests. It must be the same as `thinking_model` or `summary_model` in `agent.yaml`.
+- `litellm_params.model` is the name that your provider uses for the model. It is different for each provider.
 
 ```yaml
 apiVersion: v1
@@ -87,247 +77,170 @@ data:
            api_key: os.environ/ANTHROPIC_API_KEY
 ```
 
-Claude is available through the direct Anthropic API, Google Vertex AI
-(`vertex_ai/` prefix) and Amazon Bedrock (`bedrock/` prefix). Each carries its own
-model identifiers and credentials, so take them from the [LiteLLM provider
-documentation](https://docs.litellm.ai/docs/providers) rather than assuming the
-name above.
+Claude is available from the Anthropic API, Google Vertex AI (`vertex_ai/` prefix) and Amazon Bedrock (`bedrock/` prefix). Each provider has its own model identifiers and credentials. Get them from the [LiteLLM provider documentation](https://docs.litellm.ai/docs/providers).
 
-**Important**:
-- Coalesce Quality Scout has been tested with LiteLLM v1.77.5-stable
-- Use versioned image tags (like v1.77.5-stable) instead of `main-stable` for production deployments
+We tested Scout with LiteLLM v1.77.5-stable. In production, use a versioned LiteLLM image tag, for example `v1.77.5-stable`. Do not use `main-stable`.
 
-#### Configuration
+When LiteLLM runs, set `llm.openai.base_url` in your `agent.yaml` to the URL of the LiteLLM service. The example overlay uses `http://litellm-service.litellm.svc.cluster.local:4000/v1/chat/completions`.
 
-After deploying LiteLLM, update your Coalesce Quality Scout configuration to point to the LiteLLM service URL (e.g., `http://litellm-service:8000`) in your environment configuration files.
+## Models
 
-### Model Configuration
+Scout uses two models:
 
-Coalesce Quality Scout uses two model roles:
-
-- **Thinking model**: complex reasoning, triage and analysis
-- **Summary model**: generating summaries and reports
-
-**Recommended configuration**, and what this repository ships:
-
-| Role | Model | Why |
+| Setting | Model | Use |
 |---|---|---|
-| `thinking_model` | `claude-5-5-sonnet` | Claude Sonnet 5.5. |
-| `summary_model` | `claude-5-5-haiku` | Claude Haiku 5.5. Summaries do not need Sonnet, and Haiku is faster and cheaper. Set this to `claude-5-5-sonnet` too if you would rather configure one model. |
+| `thinking_model` | `claude-5-5-sonnet` (Claude Sonnet 5.5) | Reasoning, triage and analysis |
+| `summary_model` | `claude-5-5-haiku` (Claude Haiku 5.5) | Summaries and reports. Haiku is faster and cheaper than Sonnet, and summaries do not need Sonnet. |
 
-Also selectable: `claude-5-5-opus` as the thinking model, at a higher cost, and the
-previous generation, `claude-4-6-sonnet` and `claude-4-5-haiku`. A thinking model
-left unset defaults to `claude-4-6-sonnet`, so set it explicitly. The values above
-pin a version rather than tracking a moving alias.
+This repository uses these models. If you want to configure only one model, set `summary_model` to `claude-5-5-sonnet` too.
 
-⚠️ **Note**:
-- Google AI Gemini models are work-in-progress and are not recommended at this time
-- OpenAI models are not supported
+You can also use `claude-5-5-opus` as the thinking model, at a higher cost, or the previous models `claude-4-6-sonnet` and `claude-4-5-haiku`. If you do not set `thinking_model`, Scout uses `claude-4-6-sonnet`, so always set it. The names include a version, so the model does not change when a new version is released.
 
-Models are configured in `base/agent.yaml` and can be customized per environment using Kustomize overlays. To override model settings for a specific environment, create a patch in your overlay directory (e.g., `overlays/example/agent.yaml`).
+Scout does not support OpenAI models. Google Gemini models are not ready, and we do not recommend them.
 
-For more information, visit the [LiteLLM documentation](https://docs.litellm.ai/).
+Set the models in the `llm.openai` section of your overlay's `agent.yaml`.
 
-## Detailed Deployment Instructions
+## Deploy with Kustomize
 
-### 1. Using Kustomize (Recommended)
-
-Kustomize provides better environment management and configuration customization:
-
-1. **Review Base Configuration**
-
-   - Navigate to `base/`
-   - Review and modify configurations as needed
-   - Pay special attention to resource limits and environment variables
-
-2. **Environment Setup**
-
-   - Choose an existing environment overlay from `overlays/`
-   - Or create a new one by copying the `example` directory
-
-3. **Deploy**
+1. Copy `overlays/example` to a new directory, for example `overlays/production`.
+2. In the new `agent.env`, set `QUALITY_CLIENT_ID`, `QUALITY_CLIENT_SECRET` and `OPENAI_API_KEY`.
+3. In the new `agent.env`, add the passwords and keys that your connections use.
+4. In the new `agent.yaml`, set the LiteLLM URL and define your connections. See [Connections](#connections).
+5. Deploy the overlay:
 
    ```bash
-   kubectl apply -k overlays/example
+   kubectl apply -k overlays/production
    ```
 
-### 2. Direct Deployment Using kubectl
+## Deploy with the generated file
 
-For simpler deployments without environment-specific configurations:
+`synq-scout-example.yaml` is the `example` overlay, built into one file. Use it if you do not want to use Kustomize.
+
+1. Edit the ConfigMap and the Secret in `synq-scout-example.yaml`.
+2. Deploy the file:
+
+   ```bash
+   kubectl apply -f synq-scout-example.yaml
+   ```
+
+To build the file again from the overlay, run `./build.sh`.
+
+## Verify the deployment
 
 ```bash
-kubectl apply -f synq-scout-example.yaml
-```
-
-⚠️ **Note**: When using direct deployment, you'll need to manually redeploy when configuration changes as checksums won't update automatically.
-
-## Post-Deployment Verification
-
-After deployment, verify everything is working correctly:
-
-```bash
-# Check deployment status
-kubectl get deployments
-
-# Check pods status
-kubectl get pods
-
-# View logs
+kubectl -n synq get deployments
+kubectl -n synq get pods
 kubectl -n synq logs -l deployment=synq-scout
 
-# Test configuration and LLM connectivity, inside the running pod
+# Test the configuration and the LLM connection, inside the running pod
 kubectl -n synq exec deploy/example-synq-scout-deployment -- synq-scout health
 ```
 
-Drop the `example-` prefix, or use your own, to match the overlay you deployed.
+Use your own name prefix instead of `example-`.
 
-The `synq-scout health` command validates that the configuration is correct and LLM connections are working as expected. This command will verify connectivity to the Coalesce Quality control plane, test available data warehouse connections, and ensure both thinking and summary models are functioning properly.
+`synq-scout health` checks the configuration. It also connects to the Coalesce Quality control plane, to each data warehouse connection, and to the thinking and summary models.
 
-## Configuration Guide
+## Configuration
 
-### Database Connection Configuration
+Scout reads its configuration from `agent.yaml`. The schema is documented at https://schemas.synq.io/synq-scout/v1/config.html.
 
-Coalesce Quality Scout connects to your data warehouses using connection configurations defined in `base/agent.yaml`. Each connection configuration includes:
+An overlay's `agent.yaml` replaces `base/agent.yaml` as a whole. Kustomize does not merge the two files. Scout reads `QUALITY_CLIENT_ID`, `QUALITY_CLIENT_SECRET` and `OPENAI_API_KEY` from the environment, so an overlay `agent.yaml` does not need the `synq` section or `llm.openai.api_key`.
 
-- **Connection ID** (required): A string identifier that should match the integration ID from Coalesce Quality
-  - UUIDs are strongly recommended as they improve deterministic behavior
-  - Other string identifiers can be used but may affect agent behavior consistency
-- **name** (optional): Human-readable name for the connection
-  - Defaults to the connection ID if not specified
-- **disabled** (optional): Boolean flag to enable/disable the connection
-  - Defaults to `false` (enabled) if not specified
-- **parallelism** (optional): Number of parallel queries
-  - Defaults to `8` if not specified
-  - Adjust based on warehouse size and capabilities (see guidance below)
-- **Database credentials** (required): Specific configuration for your database type
+The example overlay sets `disableNameSuffixHash: true`, so a change to `agent.yaml` or `agent.env` does not restart the pod. After a change, restart the deployment:
 
-**Connection ID Matching**: Connection IDs should match the IDs from your Coalesce Quality integrations. This ensures the Agent can correctly map connections to Coalesce Quality data and maintain consistent tracking.
+```bash
+kubectl -n synq rollout restart deployment/example-synq-scout-deployment
+```
 
-**Recommended Setup Method**:
+### Connections
 
-**Auto-generate from Coalesce Quality** (Strongly Recommended): Visit https://app.synq.io/settings/scout to automatically generate connection configurations. This ensures:
-- Connection IDs match Coalesce Quality integration IDs
-- UUIDs are used for deterministic agent behavior
-- All required fields are included with correct structure
-- Consistent configuration across environments
+Define the data warehouse connections in the `connections` section of `agent.yaml`. We recommend that you generate them at https://app.synq.io/settings/scout. The generated configuration uses the correct connection IDs and includes all required fields.
 
-**Manual Configuration** (Not Recommended): If you must configure manually, you need to:
-1. Obtain the correct ID from your Coalesce Quality integration (preferably UUID)
-2. Configure database-specific credentials
-3. Optionally customize `name`, `disabled`, or `parallelism` (if defaults don't suit your needs)
-4. Use environment variable references for credentials (e.g., `${POSTGRES_PASSWORD}`)
-5. Define corresponding environment variables in `base/agent.env` or your overlay's `.env` file
+Each connection has these fields:
 
-**Parallelism Configuration**:
+| Field | Required | Description |
+|---|---|---|
+| Connection ID | Yes | The key of the connection. Use the ID of the integration in Coalesce Quality, so Scout can map the connection to its data. Use a UUID, as it makes the behavior of Scout more deterministic. |
+| `name` | No | A name for people to read. The default is the connection ID. |
+| `disabled` | No | If `true`, Scout does not use the connection. The default is `false`. |
+| `parallelism` | No | The maximum number of queries that run at the same time on the connection. The default is `8`. |
+| Connection type | Yes | The block for the warehouse type, for example `postgres` or `snowflake`, with the connection details. |
 
-The `parallelism` setting controls how many queries can run concurrently per connection. The default value is **8**, which works well for most medium to large warehouses. Adjust based on your warehouse:
+If you write a connection manually:
 
-- **Small warehouses / Development**: `parallelism: 1-2` (reduce from default to avoid overwhelming small systems)
-- **Medium warehouses**: `parallelism: 4-8` (default of 8 is appropriate)
-- **Large warehouses**: `parallelism: 8-16` (default is good, or increase for better throughput)
-- **Serverless/Autoscaling warehouses**: `parallelism: 16+` (increase to fully leverage automatic scaling capabilities)
+1. Get the ID of the integration in Coalesce Quality.
+2. Add the block for the warehouse type.
+3. Refer to secrets with environment variables, for example `password: ${POSTGRES_PASSWORD}`.
+4. Set these variables in your overlay's `agent.env`.
 
-**Supported Database Types**:
-- PostgreSQL
-- MySQL
-- BigQuery
-- ClickHouse
-- Snowflake
-- Redshift
-- Databricks
-- Trino
-- SQL Server
-- Oracle
-- Amazon Athena
-- Microsoft Fabric
-- IBM Db2 (Linux, UNIX and Windows)
+`base/agent.yaml` has an example of each common connection type.
 
-DuckDB is the one connection type Scout cannot open. See
-[agent.example.yaml](https://github.com/getsynq/synq-scout/blob/main/agent.example.yaml)
-for the fields of each type.
+### Parallelism
 
-**BigQuery without a key**: instead of a service account key, a BigQuery connection
-can set `impersonate_service_accounts`. Scout starts from the pod's Application Default
-Credentials (for example a GKE workload identity) and impersonates the listed service
-accounts in order. Each one must grant `roles/iam.serviceAccountTokenCreator` to the
-identity before it. See Example 3B in `base/agent.yaml`.
+The default of `8` is correct for most medium and large warehouses. Use these values as a guide:
 
-**Database-Specific Configuration Notes**:
+| Warehouse | `parallelism` |
+|---|---|
+| Small, or development | 1 to 2 |
+| Medium | 4 to 8 |
+| Large | 8 to 16 |
+| Serverless or autoscaling | 16 or more |
 
-**Snowflake Authentication**: Private key authentication is preferred (password auth is deprecated). Two methods are supported:
-- **Inline private key**: Store PEM content in environment variable
-  - Set `private_key: ${SNOWFLAKE_PRIVATE_KEY}` in `agent.yaml`
-  - Define `SNOWFLAKE_PRIVATE_KEY` in `agent.env` with the PEM content
-- **Private key file**: Store path to mounted secret file (recommended for Kubernetes)
-  - Set `private_key_file: "/opt/secrets/snowflake-private-key.pem"` in `agent.yaml`
-  - Mount the key file via Kubernetes Secret
-- Both methods support encrypted keys via optional `private_key_passphrase` parameter
+### Supported connections
 
-**MySQL Configuration**: Enhanced with additional connection options:
-- `database`: Database name to connect to
-- `allow_insecure`: Boolean flag to allow non-TLS connections (default: false)
-- `params`: Map of custom connection parameters (e.g., `charset`, `parseTime`)
+Scout connects to PostgreSQL, MySQL, BigQuery, ClickHouse, Snowflake, Redshift, Databricks, Trino, SQL Server, Oracle, Amazon Athena, Microsoft Fabric and IBM Db2 (Linux, UNIX and Windows). Scout cannot connect to DuckDB. [agent.example.yaml](https://github.com/getsynq/synq-scout/blob/main/agent.example.yaml) shows the fields of each type.
 
-For detailed configuration schema and additional options, see the [official documentation](https://schemas.synq.io/synq-scout/v1/config.html).
+### BigQuery without a key
 
-### Environment Variables
+A BigQuery connection can use `impersonate_service_accounts` instead of a service account key. Scout starts with the Application Default Credentials of the pod, for example a GKE workload identity. Then it impersonates the listed service accounts in order. Each service account must grant `roles/iam.serviceAccountTokenCreator` to the identity before it. See Example 3B in `base/agent.yaml`.
 
-Environment variables are managed in two places:
+### Snowflake
 
-- Base configuration: `base/agent.env`
-- Environment-specific variables: Located in respective overlay directories
+Use private key authentication. Snowflake password authentication is deprecated. You can give the key in two ways:
 
-#### Required Environment Variables
+- Inline: set `private_key: ${SNOWFLAKE_PRIVATE_KEY}` in `agent.yaml`, and put the PEM content in `SNOWFLAKE_PRIVATE_KEY` in `agent.env`.
+- As a file: set `private_key_file: "/opt/secrets/snowflake-private-key.pem"` in `agent.yaml`, and mount the key from a Kubernetes Secret at that path. The deployment does not mount it, so add a patch to your overlay.
 
-- **QUALITY_CLIENT_ID**: OAuth client ID for Coalesce Quality control plane authentication
-- **QUALITY_CLIENT_SECRET**: OAuth client secret for Coalesce Quality control plane authentication
-- **OPENAI_API_KEY**: API key for the LiteLLM proxy or OpenAI-compatible endpoint
+If the key is encrypted, also set `private_key_passphrase`.
 
-`SYNQ_CLIENT_ID` and `SYNQ_CLIENT_SECRET` are the names these replaced. Both are
-still read, and the promoted name wins when both are set, so an existing
-deployment keeps working without being changed.
+### MySQL
 
-#### Optional Environment Variables
+A MySQL connection also accepts these fields:
 
-- **VALIDATE_CONNECTIONS** (default: `true`)
-  - Controls database connection validation on agent startup
-  - Set to `false` to disable validation
-  - When enabled, the agent tests connectivity and configuration for all database connections before starting
-  - Helps prevent wasting LLM tokens on misconfigured connections
+- `database`: the database to connect to.
+- `allow_insecure`: if `true`, Scout can connect without TLS. The default is `false`.
+- `params`: other connection parameters, for example `charset` or `parseTime`.
 
-- **REQUIRE_VALID_CONNECTIONS** (default: `false`)
-  - Makes database connection validation failures fatal
-  - When set to `true`, the agent will refuse to start if any connection validation fails
-  - Recommended for production environments where all connections must be functional
-  - Only has effect when `VALIDATE_CONNECTIONS=true`
+## Environment variables
 
-- **REQUIRE_CONTROL_PLANE** (default: `false`)
-  - Makes Coalesce Quality control plane configuration retrieval failures fatal
-  - When set to `true`, the agent will refuse to start if it cannot retrieve configuration from the control plane
-  - The agent retries 3 times with exponential backoff (2s, 4s, 8s) before failing
-  - By default, the agent logs a warning but continues with local configuration only
+The Secret gets its values from two files:
 
-- **LOG_FORMAT** (default: `json`)
-  - Controls the output format for structured logging
-  - **Values**: `json` (default), `text`
-  - When set to `text`, logs are output in human-readable text format suitable for development and debugging
-  - When unset or set to `json`, logs are output in JSON format suitable for production and log aggregation systems
+- `base/agent.env` has a placeholder for each secret. `QUALITY_CLIENT_ID` and `QUALITY_CLIENT_SECRET` are empty.
+- The overlay's `agent.env` sets the real values. Kustomize merges it with the base file key by key.
 
-- **LOG_ADD_SOURCE** (default: `true`)
-  - Controls whether source file location (file path and line number) is included in log entries
-  - **Values**: `true` (default), `false`
-  - When enabled, each log entry includes the source file path and line number where the log was generated
-  - Useful for debugging but adds overhead and increases log size
-  - In high-volume production environments, consider disabling to reduce log storage costs
+These variables are required:
 
-- **LOG_LEVEL** (default: `INFO`)
-  - Controls the minimum severity level for log messages
-  - **Values**: `DEBUG`, `INFO` (default), `WARN`, `ERROR`
-  - Sets the minimum log level to output. Messages below this level will be filtered out
-  - Use `DEBUG` for verbose logging during troubleshooting, `INFO` for normal operation, `WARN` to see only warnings and errors, or `ERROR` to see only errors
-  - Adjusting the log level can help reduce log volume and storage costs in production
+| Variable | Description |
+|---|---|
+| `QUALITY_CLIENT_ID` | The client ID for the Coalesce Quality control plane. |
+| `QUALITY_CLIENT_SECRET` | The client secret for the Coalesce Quality control plane. |
+| `OPENAI_API_KEY` | The API key for LiteLLM or for the OpenAI-compatible API. |
 
-**Example Configuration:**
+Scout still reads the older names `SYNQ_CLIENT_ID` and `SYNQ_CLIENT_SECRET`. If you set both names, Scout uses the `QUALITY_` name. Thus you do not have to change an existing deployment.
+
+These variables are optional:
+
+| Variable | Default | Description |
+|---|---|---|
+| `VALIDATE_CONNECTIONS` | `true` | If `true`, Scout tests each connection when it starts. This prevents LLM costs on a connection that does not work. |
+| `REQUIRE_VALID_CONNECTIONS` | `false` | If `true`, Scout does not start when a connection test fails. We recommend this in production. It works only when `VALIDATE_CONNECTIONS` is `true`. |
+| `REQUIRE_CONTROL_PLANE` | `false` | If `true`, Scout does not start when it cannot get its configuration from the control plane. Scout tries 3 times, after 2s, 4s and 8s. If `false`, Scout logs a warning and uses only the local configuration. |
+| `LOG_FORMAT` | `json` | `json` for log collection, or `text` for people to read. |
+| `LOG_ADD_SOURCE` | `true` | If `true`, each log entry includes the source file and line. Set it to `false` to make the logs smaller. |
+| `LOG_LEVEL` | `INFO` | The minimum level to log: `DEBUG`, `INFO`, `WARN` or `ERROR`. |
+
+For example:
+
 ```bash
 # Disable connection validation (not recommended)
 VALIDATE_CONNECTIONS=false
@@ -348,16 +261,13 @@ LOG_ADD_SOURCE=false
 LOG_LEVEL=DEBUG
 ```
 
-### Resource Configuration
+## Resources
 
-Resource limits and requests can be adjusted in:
+`base/deployment.yaml` does not set resource requests or limits. To set them, add a deployment patch to your overlay.
 
-- Base deployment: `base/deployment.yaml`
-- Environment-specific: In respective overlay's patch files
+## Automatic image updates
 
-### Container Image Auto-Updates
-
-We recommend using an auto-update tool to keep your Coalesce Quality Scout deployment current with the latest container versions. The agent deployment includes annotations to work with [Keel.sh](https://keel.sh/docs/) by default:
+The deployment has annotations for [Keel](https://keel.sh/docs/). Keel checks the registry every minute and installs new minor and patch versions:
 
 ```yaml
 annotations:
@@ -366,58 +276,39 @@ annotations:
   keel.sh/pollSchedule: "@every 1m"
 ```
 
-#### Keel.sh (Recommended)
-- **Simple setup**: Deploy as a single Kubernetes deployment
-- **Annotation-based**: Configure updates directly in deployment manifests
-- **Flexible policies**: Support for major, minor, patch, and force update policies
-- **Multiple triggers**: Poll, webhook, and approval-based updates
+To install Keel, run `kubectl apply -f keel.yaml`. The basic auth of Keel uses the user `admin` and the password `password`. Change them in `keel-values.yaml` and run `./keel.sh` to build `keel.yaml` again.
 
-#### Alternative Auto-Update Tools
+If you use GitOps, you can use [FluxCD image automation](https://fluxcd.io/flux/guides/image-update/) or [Argo CD Image Updater](https://argocd-image-updater.readthedocs.io/) instead. These tools write the new image version to your Git repository.
 
-**GitOps-Based Solutions:**
-- **FluxCD with Image Automation**: Automatically updates Git repositories when new images are available, following GitOps principles
-- **ArgoCD Image Updater**: Updates ArgoCD applications with new container images while maintaining Git-based configuration
+## Troubleshooting
 
-Choose based on your workflow: GitOps-based solutions (FluxCD/ArgoCD) for production environments with full Git-based configuration management.
-
-## Troubleshooting Guide
-
-If you encounter issues, follow these steps:
-
-1. **Check Pod Status**
+1. Run `synq-scout health` in the pod. See [Verify the deployment](#verify-the-deployment).
+2. Check the status of the pod:
 
    ```bash
-   kubectl describe pod <pod-name>
+   kubectl -n synq describe pod <pod-name>
    ```
 
-2. **View Logs**
+3. Read the logs. For more detail, set `LOG_LEVEL=DEBUG` and restart the deployment.
 
    ```bash
-   kubectl logs <pod-name>
+   kubectl -n synq logs <pod-name>
    ```
 
-3. **Verify Configurations**
+4. Check the configuration that the pod uses:
+
    ```bash
-   kubectl get configmap
-   kubectl describe configmap
+   kubectl -n synq describe configmap
    ```
 
-## Cleanup Instructions
+If the problem continues, contact Coalesce Quality support: https://docs.synq.io/support/support
 
-To remove the deployment:
+## Remove the deployment
 
 ```bash
-# Using Kustomize
+# With Kustomize
 kubectl delete -k overlays/example
 
-# OR direct deployment
+# OR with the generated file
 kubectl delete -f synq-scout-example.yaml
 ```
-
-## Need Help?
-
-If you encounter any issues or need help:
-
-1. Check the troubleshooting section above
-2. Review the logs using `kubectl logs`
-3. Contact Coalesce Quality support: https://docs.synq.io/support/support
